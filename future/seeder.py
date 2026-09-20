@@ -65,7 +65,7 @@ class SeedGenerator:
                 return model
         raise ValueError(f"Model not found: {name}")
 
-    def value_expr(self, field, annotation):
+    def value_expr(self, field, annotation, model_name=None):
         origin = get_origin(annotation)
         if origin is Union or origin is UnionType:
             args = [arg for arg in get_args(annotation) if arg is not type(None)]
@@ -124,9 +124,9 @@ class SeedGenerator:
         if field == "trade_type" or field == "side":
             return 'fake.random_element(elements=("BUY", "SELL"))'
         if field == "percentage_change_interval":
-            return 'fake.random_element(elements=("TODAY", "ONE_WEEK", "ONE_MONTH", "THREE_MONTHS", "ONE_YEAR"))'
+            return 'fake.random_element(elements=("UNKNOWN", "LESS_THAN_ONE", "ONE_TO_FIVE", "FIVE_TO_TEN", "TEN_TO_TWENTY", "TWENTY_TO_THIRTY", "OVER_ONE_HUNDRED"))'
         if field == "group_type":
-            return 'fake.random_element(elements=("COMMON_SHARE", "FUND", "ETF", "WARRANT"))'
+            return 'fake.random_element(elements=("COMMON_SHARE", "FND", "ETF", "WARRANT", "OTHER"))'
         if field == "kind":
             return 'fake.random_element(elements=("instruments", "users"))'
         if field == "members":
@@ -137,6 +137,14 @@ class SeedGenerator:
             return "fake.sentence()"
         if field == "password_hash":
             return "fake.sha256()"
+        if field == "name" and model_name == "NordnetInstrumentModel":
+            return 'fake.random_element(elements=("Equinor", "Nordnet Global Indeks", "DNB Teknologi A", "T1 Energy", "Aker BP"))'
+        if field == "name" and model_name == "IndexModel":
+            return 'fake.random_element(elements=("Nordic Momentum", "Top Shareville Traders", "Consensus Buys", "Long-term Winners"))'
+        if field == "country":
+            return 'fake.random_element(elements=("NO", "SE", "DK", "FI"))'
+        if field == "slug":
+            return "fake.slug()"
         if "name" in field or "username" in field:
             return "fake.user_name()"
         if field in ("description", "text", "body", "content") or field.endswith("_original") or field.endswith("_translated"):
@@ -155,7 +163,7 @@ class SeedGenerator:
                 current = non_null[0] if non_null else str
             if isinstance(current, type) and issubclass(current, IModel):
                 continue
-            args.append(f"                {field}={self.value_expr(field, annotation)},")
+            args.append(f"                {field}={self.value_expr(field, annotation, name)},")
         if args:
             construct = f"            await {name}(\n" + "\n".join(args) + f"\n            ).save()"
         else:

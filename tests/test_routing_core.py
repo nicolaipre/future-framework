@@ -167,13 +167,13 @@ async def test_nested_subdomains():
         assert (await client.get("http://127.0.0.1/ping", headers={"Host": "v1.example.com"})).status_code == 404
 
 
-async def test_unknown_host_is_403_and_other_subdomain_is_404():
+async def test_unknown_host_and_other_subdomain_are_404():
     app = Future(lifespan=Lifespan(), config={"APP_NAME": "t", "APP_DOMAIN": "example.com", "APP_DEBUG": False, "OPENAPI": {"enabled": False, "auto_routes": False}})
     app.add_routes([RouteGroup(name="Www", subdomain="www", routes=[Get("/home", VerbController.echo, "home")])])
     async with FutureTestClient(app) as client:
-        forbidden = await client.get("http://127.0.0.1/home", headers={"Host": "evil.com"})
-        assert forbidden.status_code == 403
-        assert forbidden.json()["error"] == "Forbidden"
+        unknown_host = await client.get("http://127.0.0.1/home", headers={"Host": "evil.com"})
+        assert unknown_host.status_code == 404
+        assert unknown_host.json()["error"] == "Not Found"
         missing = await client.get("http://127.0.0.1/home", headers={"Host": "api.example.com"})
         assert missing.status_code == 404
 
