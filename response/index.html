@@ -67,8 +67,6 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#errors">Errors</a>
     </li>
-    <li class="toctree-l2"><a class="reference internal" href="#legacy-wrappers">Legacy wrappers</a>
-    </li>
     <li class="toctree-l2"><a class="reference internal" href="#streaming">Streaming</a>
     </li>
     </ul>
@@ -137,7 +135,6 @@ self.response.empty(status=204)
 self.response.redirect(&quot;/x&quot;)
 self.response.file(body_bytes, content_type=&quot;application/octet-stream&quot;)
 self.response.image(body_bytes, content_type=&quot;image/png&quot;)
-self.response.stream([b&quot;one&quot;, b&quot;two&quot;], content_type=&quot;text/plain&quot;)
 self.response.set_cookie(&quot;a&quot;, &quot;b&quot;, max_age=3600, domain=&quot;example.com&quot;)
 self.response.delete_cookie(&quot;a&quot;)
 </code></pre>
@@ -148,13 +145,10 @@ self.response.delete_cookie(&quot;a&quot;)
 <pre><code class="language-python">from future.exceptions import HTTPException
 raise HTTPException(&quot;Not Found&quot;, 404)
 </code></pre>
-<h2 id="legacy-wrappers">Legacy wrappers<a class="headerlink" href="#legacy-wrappers" title="Permanent link">&para;</a></h2>
-<p><code>JSONResponse</code>, <code>PlainTextResponse</code>, etc. still exist as thin subclasses. Prefer <code>self.response.json(...)</code> on the injected instance.</p>
 <h2 id="streaming">Streaming<a class="headerlink" href="#streaming" title="Permanent link">&para;</a></h2>
-<p><code>stream(chunks)</code> returns a <code>StreamingResponse</code>. That subclass owns the chunked ASGI send (<code>more_body</code>). <code>chunks</code> is an iterable or async iterable of <code>str</code> / <code>bytes</code> (a single <code>str</code> / <code>bytes</code> is one chunk). <code>json</code> / <code>text</code> / <code>file</code> still use <code>Response.__call__</code> (one body).</p>
-<pre><code class="language-python">return self.response.stream([&quot;hello&quot;, &quot; &quot;, &quot;world&quot;], content_type=&quot;text/plain&quot;)
-# or
-from future.response import StreamingResponse
+<p><code>StreamingResponse</code> is a separate class (same module as <code>WebSocketResponse</code>). Chunked HTTP bodies are not folded into <code>Response</code> yet.</p>
+<pre><code class="language-python">from future.response import StreamingResponse
+
 return StreamingResponse([&quot;hello&quot;, &quot; &quot;, &quot;world&quot;], content_type=&quot;text/plain&quot;)
 </code></pre>
 <p>WebSocket sessions use <code>WebSocketResponse</code> — see <a href="../websockets/">WebSockets</a>.</p>

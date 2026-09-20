@@ -171,7 +171,7 @@
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
 <p><code>future.authentication.*</code> are stubs (<code>auth_type</code> only) extending <code>future.interfaces.IAuthentication</code>. No JWT / OIDC / session-login middleware ships yet.</p>
 <h2 id="websockets">WebSockets<a class="headerlink" href="#websockets" title="Permanent link">&para;</a></h2>
-<p>Usable duplex echo — see <a href="../websockets/">WebSockets</a>. <code>handle_websocket_request</code> mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: <code>self.response.stream(chunks)</code> / <code>StreamingResponse</code> — see <a href="../response/">Response</a>.</p>
+<p>Usable duplex echo — see <a href="../websockets/">WebSockets</a>. <code>handle_websocket_request</code> mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: <code>StreamingResponse</code> (same module as <code>WebSocketResponse</code>) — see <a href="../response/">Response</a>. Later: whether streaming belongs on <code>Response</code> itself.</p>
 <h2 id="http2-asgi-server">HTTP/2 / ASGI server<a class="headerlink" href="#http2-asgi-server" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Outbound: prefer httpx (already used by the test client).</li>
