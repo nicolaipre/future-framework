@@ -30,7 +30,7 @@ class Response:
             header_map["content-type"] = content_type
         # Preserve Set-Cookie headers already appended via set_cookie
         cookies = [pair for pair in self.headers if pair[0].lower() == b"set-cookie"]
-        self.headers = [[key.encode(), value.encode()] for key, value in header_map.items()]
+        self.headers = [[key.lower().encode(), value.encode()] for key, value in header_map.items()]
         self.headers.extend(cookies)
         return self
 
@@ -53,11 +53,6 @@ class Response:
 
     def file(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None, content_type: str = "application/octet-stream") -> "Response":
         return self._set(body=body, status=status, headers=headers, content_type=content_type)
-
-    def stream(self, chunks, status: int = 200, headers: dict[str, str] | None = None, content_type: str = "application/octet-stream") -> "StreamingResponse":
-        streamed = StreamingResponse(chunks, status=status, headers=headers, content_type=content_type)
-        streamed.headers.extend([pair for pair in self.headers if pair[0].lower() == b"set-cookie"])
-        return streamed
 
     def image(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None, content_type: str = "image/png", file_path: str | None = None) -> "Response":
         if file_path:
@@ -149,72 +144,33 @@ class WebSocketResponse:
             await self.send_text(f"Echo: {text}")
 
 
-# Temporary wrappers for migration
-class PlainTextResponse(Response):
-    def __init__(self, body: str = "", status: int = 200, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.text(body, status=status, headers=headers)
-
-
-class JSONResponse(Response):
-    def __init__(self, data: Any = None, status: int = 200, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.json(data, status=status, headers=headers)
-
-
-class EmptyResponse(Response):
-    def __init__(self, status: int = 204, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.empty(status=status, headers=headers)
-
-
-class HTMLResponse(Response):
-    def __init__(self, html: str = "", status: int = 200, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.html(html, status=status, headers=headers)
-
-
-class PNGResponse(Response):
-    def __init__(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.image(body, status=status, headers=headers, content_type="image/png")
-
-
-class ImageResponse(Response):
-    def __init__(
-        self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None, image_content_type: str = "image/png", file_path: str | None = None
-    ) -> None:
-        super().__init__()
-        self.image(body, status=status, headers=headers, content_type=image_content_type, file_path=file_path)
-
-
-class RedirectResponse(Response):
-    def __init__(self, url: str = "", status: int = 302, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        if url:
-            self.redirect(url, status=status, headers=headers)
-
-
-class FileResponse(Response):
-    def __init__(self, body: bytes = b"", status: int = 200, headers: dict[str, str] | None = None) -> None:
-        super().__init__()
-        self.file(body, status=status, headers=headers)
-
-
 class StreamingResponse(Response):
     def __init__(self, body=(), status: int = 200, headers: dict[str, str] | None = None, content_type: Optional[str] = None) -> None:
         super().__init__(body=b"", status=status, headers=headers, content_type=content_type or "application/octet-stream")
         self._chunks = body
 
     async def __call__(self, send: Any) -> None:
-        await send({"type": "http.response.start", "status": self.status, "headers": self.headers})
+        await send({"type": "http.response.start", "status": int(self.status), "headers": self.headers})
         chunks = self._chunks
-        if isinstance(chunks, (bytes, str)):
+        if isinstance(chunks, (bytes, bytearray, memoryview, str)):
             chunks = [chunks]
         if hasattr(chunks, "__aiter__"):
             async for chunk in chunks:
-                await send({"type": "http.response.body", "body": chunk if isinstance(chunk, bytes) else str(chunk).encode("utf-8"), "more_body": True})
+                if isinstance(chunk, (bytes, bytearray, memoryview)):
+                    body = bytes(chunk)
+                elif isinstance(chunk, str):
+                    body = chunk.encode("utf-8")
+                else:
+                    raise TypeError(f"stream chunk must be bytes or str, got {type(chunk).__name__}")
+                await send({"type": "http.response.body", "body": body, "more_body": True})
         else:
             for chunk in chunks:
-                await send({"type": "http.response.body", "body": chunk if isinstance(chunk, bytes) else str(chunk).encode("utf-8"), "more_body": True})
+                if isinstance(chunk, (bytes, bytearray, memoryview)):
+                    body = bytes(chunk)
+                elif isinstance(chunk, str):
+                    body = chunk.encode("utf-8")
+                else:
+                    raise TypeError(f"stream chunk must be bytes or str, got {type(chunk).__name__}")
+                await send({"type": "http.response.body", "body": body, "more_body": True})
         await send({"type": "http.response.body", "body": b"", "more_body": False})
+

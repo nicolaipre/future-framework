@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
-## [2.0.0] - 2026-08-30
+## [2.1.0] - 2026-09-20
+### Removed
+- `JSONResponse`, `PlainTextResponse`, `EmptyResponse`, `HTMLResponse`, `PNGResponse`, `ImageResponse`, `RedirectResponse`, `FileResponse` — use `self.response.json` / `.text` / `.html` / `.empty` / `.redirect` / `.file` / `.image`
+- `Response.stream` — use `StreamingResponse` directly (same module as `WebSocketResponse`)
+
+### Fixed
+- Postgres `where … in` uses a single `ANY(:array)` bind so large ID lists no longer hit the ~32767 bind-variable limit
+- Elasticsearch `find` / `all` / `get` set model `id` from `_id` when `_source` omits it
+
+### Changed
+- Seeder field heuristics for common names (prices, symbols, trade side, timestamps, etc.)
+- Response header names are lowercased; streaming chunks must be `bytes` or `str`
 Breaking: Active Record / migrations / seeders are async (`await`); `Connections` is `Database`; GraphQL is search terms, not documents.
 
 ### Added
