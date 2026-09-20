@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Removed
+- `JSONResponse`, `PlainTextResponse`, `EmptyResponse`, `HTMLResponse`, `PNGResponse`, `ImageResponse`, `RedirectResponse`, `FileResponse` — use `self.response.json` / `.text` / `.html` / `.empty` / `.redirect` / `.file` / `.image`
+
+### Changed
+- `Response.stream` is gone; chunked HTTP still uses `StreamingResponse` (kept next to `WebSocketResponse`)
 
 
 ## [2.0.0] - 2026-08-30

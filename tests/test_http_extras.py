@@ -24,7 +24,7 @@ class ParamController(IController):
         return self.response.text("ok")
 
     async def chunks(self) -> Response:
-        return self.response.stream(["hello", " ", "world"], content_type="text/plain")
+        return StreamingResponse(["hello", " ", "world"], content_type="text/plain")
 
     async def ab(self):
         yield b"a"
@@ -123,7 +123,7 @@ async def test_response_helpers():
     names = [pair[1].decode() for pair in cookie.headers if pair[0] == b"set-cookie"]
     assert any(value.startswith("sid=1") for value in names)
     assert any("Max-Age=0" in value for value in names)
-    streamed = Response().stream(["a", "b"], content_type="text/plain")
+    streamed = StreamingResponse(["a", "b"], content_type="text/plain")
     assert streamed.status == 200
     assert streamed._chunks == ["a", "b"]
 

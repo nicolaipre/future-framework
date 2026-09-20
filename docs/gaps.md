@@ -21,7 +21,7 @@ CORS, GZip, CSRF, and RateLimit are usable and exported. Confuser classes remain
 `future.authentication.*` are stubs (`auth_type` only) extending `future.interfaces.IAuthentication`. No JWT / OIDC / session-login middleware ships yet.
 
 ## WebSockets
-Usable duplex echo — see [WebSockets](websockets.md). `handle_websocket_request` mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: `self.response.stream(chunks)` / `StreamingResponse` — see [Response](response.md).
+Usable duplex echo — see [WebSockets](websockets.md). `handle_websocket_request` mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: `StreamingResponse` (same module as `WebSocketResponse`) — see [Response](response.md). Later: whether streaming belongs on `Response` itself.
 
 ## HTTP/2 / ASGI server
 - Outbound: prefer httpx (already used by the test client).

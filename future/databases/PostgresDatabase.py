@@ -1,5 +1,6 @@
 from future.interfaces.IDatabase import IDatabase
-from sqlalchemy import text
+from sqlalchemy import BigInteger, String, bindparam, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import create_async_engine
 from urllib.parse import quote_plus
 
@@ -61,17 +62,21 @@ class PostgresDatabase(IDatabase):
         table = model.tableize()
         clauses = []
         params = {}
+        array_binds = {}
         for index, (column, operator, value) in enumerate(wheres):
             if operator == "in":
                 values = list(value)
                 if not values:
                     return []
-                keys = []
-                for item_index, item in enumerate(values):
-                    key = f"v{index}_{item_index}"
-                    keys.append(f":{key}")
-                    params[key] = item
-                clauses.append(f'"{column}" IN ({", ".join(keys)})')
+                # One array bind avoids Postgres' ~32767 bind-variable limit.
+                key = f"v{index}"
+                clauses.append(f'"{column}" = ANY(:{key})')
+                params[key] = values
+                sample = values[0]
+                if isinstance(sample, int) and not isinstance(sample, bool):
+                    array_binds[key] = ARRAY(BigInteger)
+                else:
+                    array_binds[key] = ARRAY(String)
                 continue
             if operator == "like":
                 key = f"v{index}"
@@ -90,8 +95,11 @@ class PostgresDatabase(IDatabase):
             sql += " ORDER BY " + ", ".join(f'"{column}" {direction}' for column, direction in orders)
         if limit is not None:
             sql += f" LIMIT {int(limit)}"
+        stmt = text(sql)
+        for key, array_type in array_binds.items():
+            stmt = stmt.bindparams(bindparam(key, type_=array_type))
         async with self.client.connect() as connection:
-            rows = (await connection.execute(text(sql), params)).mappings().all()
+            rows = (await connection.execute(stmt, params)).mappings().all()
         return [model.__class__(**dict(row)) for row in rows]
 
     async def delete(self, model):

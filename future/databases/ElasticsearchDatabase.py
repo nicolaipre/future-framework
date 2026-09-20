@@ -42,7 +42,10 @@ class ElasticsearchDatabase(IDatabase):
             return None
         if not result or "_source" not in result:
             return None
-        return model.__class__(**result["_source"])
+        source = dict(result["_source"] or {})
+        if result.get("_id") is not None and not source.get("id"):
+            source["id"] = result["_id"]
+        return model.__class__(**source)
 
     async def all(self, model):
         if self.client is None:
@@ -51,7 +54,13 @@ class ElasticsearchDatabase(IDatabase):
             result = await self.client.search(index=model.tableize(), body={"query": {"match_all": {}}, "size": 10000})
         except Exception:
             return []
-        return [model.__class__(**hit["_source"]) for hit in result.get("hits", {}).get("hits", [])]
+        rows = []
+        for hit in result.get("hits", {}).get("hits", []):
+            source = dict(hit.get("_source") or {})
+            if hit.get("_id") is not None and not source.get("id"):
+                source["id"] = hit["_id"]
+            rows.append(model.__class__(**source))
+        return rows
 
     async def get(self, model, wheres, limit=None, orders=None):
         if self.client is None:
@@ -85,7 +94,13 @@ class ElasticsearchDatabase(IDatabase):
             result = await self.client.search(index=model.tableize(), body=body)
         except Exception:
             return []
-        return [model.__class__(**hit["_source"]) for hit in result.get("hits", {}).get("hits", [])]
+        rows = []
+        for hit in result.get("hits", {}).get("hits", []):
+            source = dict(hit.get("_source") or {})
+            if hit.get("_id") is not None and not source.get("id"):
+                source["id"] = hit["_id"]
+            rows.append(model.__class__(**source))
+        return rows
 
     async def delete(self, model):
         if self.client is None:
