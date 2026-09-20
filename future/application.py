@@ -402,7 +402,7 @@ class Future:
         try:
             host_domain = request.host.split("/")[0] if "/" in request.host else request.host
             if not self._validate_domain_access(host_domain):
-                raise HTTPException("Forbidden", 403)
+                raise HTTPException("Not Found", 404)
 
             debug = bool(self.config.get("APP_DEBUG")) if self.config else False
             route_host = host_domain.rsplit(":", 1)[0] if debug and ":" in host_domain else host_domain
