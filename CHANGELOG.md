@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.1.1] - 2026-09-20
 ### Fixed
 - Requests whose `Host` is outside `APP_DOMAIN` now return `404 Not Found`, matching unregistered subdomains without disclosing domain validation behavior
 
