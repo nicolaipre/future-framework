@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.0.1] - 2026-09-22
+### Fixed
+- Relational update migrations now backfill newly required columns before enforcing `NOT NULL`, using the model default or a type-appropriate zero value
+
+
 ## [3.0.0] - 2026-09-22
 ### Added
 - Model-based update migrations: generating a migration again after changing a model now emits a full `Schema.update` snapshot, with the preceding snapshot in `down()` for rollback
@@ -14,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Running a newly generated migration for an existing model no longer reports success after a `CREATE ... IF NOT EXISTS` no-op
-- Relational update migrations now backfill newly required columns before enforcing `NOT NULL`, using the model default or a type-appropriate zero value
 
 
 ## [2.1.1] - 2026-09-20
