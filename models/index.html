@@ -172,6 +172,8 @@ future make:seed Stock        # → database/seeds/StockSeeder.py from annotatio
 future make:migrations
 future make:seeds             # skips seed files that already exist
 </code></pre>
+<p>The first migration generated for a model is a create snapshot. After changing the model annotations, run <code>make:migration</code> again: Future detects the earlier snapshot and generates an update migration. Its <code>up()</code> contains the new model shape and its <code>down()</code> contains the preceding shape, so both migrate and rollback remain model-driven.</p>
+<p>When adding a column to a table that already contains rows, make the annotation optional or edit the generated column to supply <code>.default(...)</code>; a new required column without a value cannot preserve those rows and the database will reject the migration.</p>
 <p>Then apply / run:</p>
 <pre><code class="language-bash">future migrate
 future seed                   # all seeders
@@ -213,6 +215,27 @@ class StockSeeder(Seeder):
             ).save()
 </code></pre>
 <p>Edit generated files if you need indexes, extras, or richer seed data. Re-running generators does not replace hand-edited migrations; seeds skip existing files on <code>make:seeds</code>.</p>
+<p>For example, adding <code>market: str | None</code> to <code>Stock</code> and generating again produces:</p>
+<pre><code class="language-python">class UpdateStocks(Migration):
+    __connection__ = &quot;default&quot;
+
+    async def up(self):
+        async with Schema.update(&quot;stocks&quot;) as table:
+            table.id()
+            table.string(&quot;name&quot;)
+            table.string(&quot;symbol&quot;)
+            table.string(&quot;instrument_id&quot;)
+            table.float(&quot;price&quot;).nullable()
+            table.string(&quot;market&quot;).nullable()
+
+    async def down(self):
+        async with Schema.update(&quot;stocks&quot;) as table:
+            table.id()
+            table.string(&quot;name&quot;)
+            table.string(&quot;symbol&quot;)
+            table.string(&quot;instrument_id&quot;)
+            table.float(&quot;price&quot;).nullable()
+</code></pre>
 <h2 id="crud">CRUD<a class="headerlink" href="#crud" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">stock = Stock(id=&quot;1&quot;, name=&quot;Equinor&quot;, symbol=&quot;EQNR&quot;, instrument_id=&quot;16105067&quot;, price=250.0)
 await stock.save()

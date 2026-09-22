@@ -160,7 +160,8 @@ future migrate rollback
 future seed
 future seed StockSeeder
 </code></pre>
-<p>Migrations use <code>async def up</code> / <code>async def down</code> (<code>async with Schema.create(...)</code>, <code>await Schema.drop(...)</code>). Seeders use <code>async def run</code> and <code>await model.save()</code>. The CLI runs them with <code>asyncio.run</code>.</p>
+<p>Migrations use <code>async def up</code> / <code>async def down</code>. The first model snapshot uses <code>Schema.create</code>; later snapshots use <code>Schema.update</code> and carry the previous model shape in <code>down()</code> so rollback restores it. Seeders use <code>async def run</code> and <code>await model.save()</code>. The CLI runs them with <code>asyncio.run</code>.</p>
+<p><code>Schema.update</code> is database-polymorphic. SQL drivers reconcile the physical table while preserving data in columns shared by both snapshots; ClickHouse applies column alterations; Elasticsearch updates compatible mappings and reindexes for incompatible/removal changes; MongoDB replaces its collection validator; Redis stores the model schema as metadata because its records are schemaless.</p>
 <h2 id="drivers">Drivers<a class="headerlink" href="#drivers" title="Permanent link">&para;</a></h2>
 <p>Every driver is <strong>async</strong> (<code>create_async_engine</code> + aiosqlite / aiomysql / asyncpg; <code>redis.asyncio</code>; <code>AsyncMongoClient</code>; <code>AsyncElasticsearch</code>; ClickHouse <code>asynch</code>). <code>IDatabase</code> methods are <code>async def</code>.</p>
 <table>
@@ -204,7 +205,7 @@ future seed StockSeeder
 </tr>
 <tr>
 <td>Redis</td>
-<td>N/A</td>
+<td>Yes (metadata)</td>
 <td>Yes</td>
 </tr>
 </tbody>
