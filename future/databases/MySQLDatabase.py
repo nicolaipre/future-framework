@@ -123,6 +123,13 @@ class MySQLDatabase(IDatabase):
     async def schema_create(self, blueprint):
         if self.client is None:
             await self.connect()
+        parts = self._schema_parts(blueprint)
+        create_sql = text(f"CREATE TABLE IF NOT EXISTS `{blueprint.name}` ({', '.join(parts)})")
+        async with self.client.begin() as connection:
+            await connection.execute(create_sql)
+        return {"status": "created", "table": blueprint.name}
+
+    def _schema_parts(self, blueprint):
         definitions = []
         uniques = []
         indexes = []
@@ -154,11 +161,31 @@ class MySQLDatabase(IDatabase):
                 uniques.append(f"UNIQUE KEY `unique_{column.name}` (`{column.name}`)")
             if column.is_index and not column.is_primary and not column.is_unique:
                 indexes.append(f"KEY `index_{column.name}` (`{column.name}`)")
-        parts = definitions + uniques + indexes
-        create_sql = text(f"CREATE TABLE IF NOT EXISTS `{blueprint.name}` ({', '.join(parts)})")
+        return definitions + uniques + indexes
+
+    async def schema_update(self, blueprint):
+        if self.client is None:
+            await self.connect()
+        if not await self.table_exists(blueprint.name):
+            return await self.schema_create(blueprint)
+        sql = text("SELECT COLUMN_NAME FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = :table ORDER BY ORDINAL_POSITION")
+        async with self.client.connect() as connection:
+            rows = (await connection.execute(sql, {"table": blueprint.name})).mappings().all()
+        existing = {row["COLUMN_NAME"] for row in rows}
+        common = [column.name for column in blueprint.columns if column.name in existing]
+        temporary = f"_future_migrate_{blueprint.name}"
+        backup = f"_future_backup_{blueprint.name}"
+        parts = self._schema_parts(blueprint)
         async with self.client.begin() as connection:
-            await connection.execute(create_sql)
-        return {"status": "created", "table": blueprint.name}
+            await connection.execute(text(f"DROP TABLE IF EXISTS `{temporary}`"))
+            await connection.execute(text(f"DROP TABLE IF EXISTS `{backup}`"))
+            await connection.execute(text(f"CREATE TABLE `{temporary}` ({', '.join(parts)})"))
+            if common:
+                columns = ", ".join(f"`{name}`" for name in common)
+                await connection.execute(text(f"INSERT INTO `{temporary}` ({columns}) SELECT {columns} FROM `{blueprint.name}`"))
+            await connection.execute(text(f"RENAME TABLE `{blueprint.name}` TO `{backup}`, `{temporary}` TO `{blueprint.name}`"))
+            await connection.execute(text(f"DROP TABLE `{backup}`"))
+        return {"status": "updated", "table": blueprint.name, "columns": sorted(column.name for column in blueprint.columns)}
 
     async def schema_drop(self, name):
         if self.client is None:

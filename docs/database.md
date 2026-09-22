@@ -42,7 +42,9 @@ future seed
 future seed StockSeeder
 ```
 
-Migrations use `async def up` / `async def down` (`async with Schema.create(...)`, `await Schema.drop(...)`). Seeders use `async def run` and `await model.save()`. The CLI runs them with `asyncio.run`.
+Migrations use `async def up` / `async def down`. The first model snapshot uses `Schema.create`; later snapshots use `Schema.update` and carry the previous model shape in `down()` so rollback restores it. Seeders use `async def run` and `await model.save()`. The CLI runs them with `asyncio.run`.
+
+`Schema.update` is database-polymorphic. SQL drivers reconcile the physical table while preserving data in columns shared by both snapshots; ClickHouse applies column alterations; Elasticsearch updates compatible mappings and reindexes for incompatible/removal changes; MongoDB replaces its collection validator; Redis stores the model schema as metadata because its records are schemaless.
 
 ## Drivers
 Every driver is **async** (`create_async_engine` + aiosqlite / aiomysql / asyncpg; `redis.asyncio`; `AsyncMongoClient`; `AsyncElasticsearch`; ClickHouse `asynch`). `IDatabase` methods are `async def`.
@@ -55,7 +57,7 @@ Every driver is **async** (`create_async_engine` + aiosqlite / aiomysql / asyncp
 | Elasticsearch | Yes | Yes |
 | MongoDB | Yes | Yes |
 | ClickHouse | Yes | Yes |
-| Redis | N/A | Yes |
+| Redis | Yes (metadata) | Yes |
 
 Scaffold default is **SQLite**. Set `DB_DATABASE` / `sqlite_database` to a bare name; the driver appends `.sqlite`.
 

@@ -123,29 +123,60 @@ class ClickhouseDatabase(IDatabase):
         definitions = []
         order_by = "tuple()"
         for column in blueprint.columns:
-            if column.type == "string":
-                ch_type = "String"
-            elif column.type == "text":
-                ch_type = "String"
-            elif column.type == "integer":
-                ch_type = "Int64"
-            elif column.type == "float":
-                ch_type = "Float64"
-            elif column.type == "boolean":
-                ch_type = "UInt8"
-            elif column.type == "datetime":
-                ch_type = "DateTime"
-            else:
-                raise ValueError(f"Unsupported column type: {column.type}")
-            if column.is_nullable:
-                ch_type = f"Nullable({ch_type})"
-            definitions.append(f"`{column.name}` {ch_type}")
+            definitions.append(self._column_definition(column))
             if column.is_primary:
                 order_by = f"`{column.name}`"
         create_sql = f"CREATE TABLE IF NOT EXISTS `{blueprint.name}` ({', '.join(definitions)}) ENGINE = MergeTree() ORDER BY {order_by}"
         async with self.client.cursor() as cursor:
             await cursor.execute(create_sql)
         return {"status": "created", "table": blueprint.name}
+
+    def _column_type(self, column):
+        if column.type in ("string", "text"):
+            ch_type = "String"
+        elif column.type == "integer":
+            ch_type = "Int64"
+        elif column.type == "float":
+            ch_type = "Float64"
+        elif column.type == "boolean":
+            ch_type = "UInt8"
+        elif column.type == "datetime":
+            ch_type = "DateTime"
+        else:
+            raise ValueError(f"Unsupported column type: {column.type}")
+        return f"Nullable({ch_type})" if column.is_nullable else ch_type
+
+    def _column_definition(self, column):
+        default = f" DEFAULT {column.default_value!r}" if column.default_value is not None else ""
+        return f"`{column.name}` {self._column_type(column)}{default}"
+
+    async def table_exists(self, name):
+        if self.client is None:
+            await self.connect()
+        async with self.client.cursor() as cursor:
+            await cursor.execute("SELECT count() FROM system.tables WHERE database = currentDatabase() AND name = %(name)s", {"name": name})
+            rows = await cursor.fetchall()
+        return bool(rows and rows[0][0])
+
+    async def schema_update(self, blueprint):
+        if self.client is None:
+            await self.connect()
+        if not await self.table_exists(blueprint.name):
+            return await self.schema_create(blueprint)
+        async with self.client.cursor() as cursor:
+            await cursor.execute("SELECT name, type FROM system.columns WHERE database = currentDatabase() AND table = %(table)s", {"table": blueprint.name})
+            rows = await cursor.fetchall()
+            existing = {row[0]: row[1] for row in rows}
+            desired = {column.name: column for column in blueprint.columns}
+            for name, column in desired.items():
+                definition = self._column_definition(column)
+                if name not in existing:
+                    await cursor.execute(f"ALTER TABLE `{blueprint.name}` ADD COLUMN {definition}")
+                elif existing[name] != self._column_type(column):
+                    await cursor.execute(f"ALTER TABLE `{blueprint.name}` MODIFY COLUMN {definition}")
+            for name in existing.keys() - desired.keys():
+                await cursor.execute(f"ALTER TABLE `{blueprint.name}` DROP COLUMN `{name}`")
+        return {"status": "updated", "table": blueprint.name, "columns": sorted(desired)}
 
     async def schema_drop(self, name):
         if self.client is None:

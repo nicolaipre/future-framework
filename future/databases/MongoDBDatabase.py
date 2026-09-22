@@ -108,6 +108,14 @@ class MongoDBDatabase(IDatabase):
     async def schema_create(self, blueprint):
         if self.db is None:
             await self.connect()
+        validator = self._validator(blueprint)
+        if blueprint.name in await self.db.list_collection_names():
+            return {"status": "exists", "collection": blueprint.name}
+        await self.db.create_collection(blueprint.name, validator=validator)
+        await self._ensure_indexes(blueprint)
+        return {"status": "created", "collection": blueprint.name}
+
+    def _validator(self, blueprint):
         properties = {}
         required = []
         for column in blueprint.columns:
@@ -129,15 +137,29 @@ class MongoDBDatabase(IDatabase):
         validator = {"$jsonSchema": {"bsonType": "object", "properties": properties}}
         if required:
             validator["$jsonSchema"]["required"] = required
-        if blueprint.name in await self.db.list_collection_names():
-            return {"status": "exists", "collection": blueprint.name}
-        await self.db.create_collection(blueprint.name, validator=validator)
+        return validator
+
+    async def _ensure_indexes(self, blueprint):
         for column in blueprint.columns:
             if column.is_unique or column.is_primary:
                 await self.db[blueprint.name].create_index(column.name, unique=True)
             elif column.is_index:
                 await self.db[blueprint.name].create_index(column.name)
-        return {"status": "created", "collection": blueprint.name}
+
+    async def table_exists(self, name):
+        if self.db is None:
+            await self.connect()
+        return name in await self.db.list_collection_names()
+
+    async def schema_update(self, blueprint):
+        if self.db is None:
+            await self.connect()
+        if not await self.table_exists(blueprint.name):
+            return await self.schema_create(blueprint)
+        validator = self._validator(blueprint)
+        await self.db.command({"collMod": blueprint.name, "validator": validator})
+        await self._ensure_indexes(blueprint)
+        return {"status": "updated", "collection": blueprint.name, "properties": sorted(column.name for column in blueprint.columns)}
 
     async def schema_drop(self, name):
         if self.db is None:

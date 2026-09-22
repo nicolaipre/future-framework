@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from future.databases.ElasticsearchDatabase import ElasticsearchDatabase
 from future.interfaces.IModel import IModel
+from future.migrations import Blueprint
 
 
 class Doc(IModel):
@@ -60,3 +61,21 @@ async def test_elasticsearch_save_indexes_document():
     result = await es.save(Doc(id="1", title="x"))
     assert result["result"]["result"] == "created"
     es.client.index.assert_called_with(index="docs", id="1", document={"id": "1", "title": "x"}, refresh=True)
+
+
+async def test_elasticsearch_schema_update_extends_mapping():
+    es = _es()
+    es.client.indices = MagicMock()
+    es.client.indices.exists = AsyncMock(return_value=True)
+    es.client.indices.get_mapping = AsyncMock(return_value={"docs": {"mappings": {"properties": {"id": {"type": "keyword"}}}}})
+    es.client.indices.put_mapping = AsyncMock()
+    blueprint = Blueprint("docs", "default", action="update")
+    blueprint.id()
+    blueprint.string("title")
+
+    result = await es.schema_update(blueprint)
+
+    assert result["status"] == "updated"
+    properties = es.client.indices.put_mapping.call_args.kwargs["properties"]
+    assert properties["id"]["type"] == "keyword"
+    assert properties["title"]["type"] == "text"
