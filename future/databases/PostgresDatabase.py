@@ -180,15 +180,32 @@ class PostgresDatabase(IDatabase):
         async with self.client.connect() as connection:
             rows = (await connection.execute(sql, {"table": blueprint.name})).mappings().all()
         existing = {row["column_name"] for row in rows}
-        common = [column.name for column in blueprint.columns if column.name in existing]
         temporary = f"_future_{uuid4().hex[:8]}_{blueprint.name}"[:63]
         parts, indexes = self._schema_parts(blueprint)
         async with self.client.begin() as connection:
             await connection.execute(text(f'DROP TABLE IF EXISTS "{temporary}"'))
             await connection.execute(text(f'CREATE TABLE "{temporary}" ({", ".join(parts)})'))
-            if common:
-                columns = ", ".join(f'"{name}"' for name in common)
-                await connection.execute(text(f'INSERT INTO "{temporary}" ({columns}) SELECT {columns} FROM "{blueprint.name}"'))
+            targets = []
+            sources = []
+            backfills = {}
+            for index, column in enumerate(blueprint.columns):
+                quoted = f'"{column.name}"'
+                if column.name in existing:
+                    source = quoted
+                    if not column.is_nullable:
+                        key = f"future_backfill_{index}"
+                        source = f"COALESCE({quoted}, :{key})"
+                        backfills[key] = column.backfill_value()
+                elif not column.is_nullable:
+                    key = f"future_backfill_{index}"
+                    source = f":{key}"
+                    backfills[key] = column.backfill_value()
+                else:
+                    continue
+                targets.append(quoted)
+                sources.append(source)
+            if targets:
+                await connection.execute(text(f'INSERT INTO "{temporary}" ({", ".join(targets)}) SELECT {", ".join(sources)} FROM "{blueprint.name}"'), backfills)
             await connection.execute(text(f'DROP TABLE "{blueprint.name}"'))
             await connection.execute(text(f'ALTER TABLE "{temporary}" RENAME TO "{blueprint.name}"'))
             for index_name in indexes:
