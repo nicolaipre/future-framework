@@ -71,11 +71,13 @@ async def test_postgres_schema_update_uses_driver_specific_rebuild():
     postgres.client = engine
     blueprint = Blueprint("rows", "default", action="update")
     blueprint.id()
-    blueprint.string("name").nullable()
+    blueprint.string("name")
 
     result = await postgres.schema_update(blueprint)
 
     sql = "\n".join(str(call.args[0]) for call in writer.execute.call_args_list)
     assert result["status"] == "updated"
     assert 'CREATE TABLE "_future_' in sql
+    assert 'SELECT COALESCE("id", :future_backfill_0), :future_backfill_1 FROM "rows"' in sql
+    assert writer.execute.call_args_list[2].args[1]["future_backfill_1"] == ""
     assert 'RENAME TO "rows"' in sql

@@ -58,7 +58,7 @@ future make:seeds             # skips seed files that already exist
 
 The first migration generated for a model is a create snapshot. After changing the model annotations, run `make:migration` again: Future detects the earlier snapshot and generates an update migration. Its `up()` contains the new model shape and its `down()` contains the preceding shape, so both migrate and rollback remain model-driven.
 
-When adding a column to a table that already contains rows, make the annotation optional or edit the generated column to supply `.default(...)`; a new required column without a value cannot preserve those rows and the database will reject the migration.
+When adding a required column to a table that already contains rows, Future backfills it from the model class default. If the model has no default, it uses the type's zero value (`""`, `0`, `0.0`, `False`, or the Unix epoch). Optional fields are backfilled with `NULL`.
 
 Then apply / run:
 

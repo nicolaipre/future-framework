@@ -55,6 +55,21 @@ class Column:
         self.default_value = value
         return self
 
+    def backfill_value(self):
+        if self.default_value is not None:
+            return self.default_value
+        if self.type in ("string", "text"):
+            return ""
+        if self.type == "integer":
+            return 0
+        if self.type == "float":
+            return 0.0
+        if self.type == "boolean":
+            return False
+        if self.type == "datetime":
+            return datetime(1970, 1, 1)
+        raise ValueError(f"Unsupported column type: {self.type}")
+
 
 class Blueprint:
     def __init__(self, name, connection_name, action="create"):
@@ -268,6 +283,11 @@ class MigrationGenerator:
         for field, annotation in annotations.items():
             line = self.column_line(field, annotation)
             if line is not None:
+                default_value = vars(model).get(field)
+                if default_value is not None:
+                    if isinstance(default_value, datetime):
+                        default_value = default_value.isoformat(sep=" ")
+                    line += f".default({default_value!r})"
                 lines.append(f"            {line}")
         if use_timestamps:
             lines.append("            table.timestamps()")

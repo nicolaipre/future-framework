@@ -175,3 +175,51 @@ async def test_generated_update_migration_changes_table_and_rolls_back(tmp_path)
     assert [column["name"] for column in columns] == ["id", "name"]
     assert (await Widget.find("1")).name == "kept"
     await connection.disconnect()
+
+
+async def test_generated_update_backfills_new_required_model_field(tmp_path):
+    connection = _sqlite()
+    models = tmp_path / "models"
+    migrations = tmp_path / "migrations"
+    models.mkdir()
+    model = models / "Widget.py"
+    model.write_text(
+        "from future.interfaces.IModel import IModel\n\n"
+        "class Widget(IModel):\n"
+        '    __table__ = "widgets"\n'
+        "    id: str\n"
+        "    name: str\n"
+    )
+    generator = MigrationGenerator(models_path=str(models), migrations_path=str(migrations))
+    generator.make("Widget")
+    migrator = Migrator(path=str(migrations))
+    await migrator.run()
+    await Widget(id="1", name="kept").save()
+
+    model.write_text(model.read_text() + "    another_id: str\n")
+    generator.make("Widget")
+    assert len(await migrator.run()) == 1
+
+    found = await Widget.find("1")
+    assert found is not None
+    assert found.name == "kept"
+    assert found.another_id == ""
+    async with connection.client.connect() as database:
+        columns = (await database.execute(text('PRAGMA table_info("widgets")'))).mappings().all()
+    another_id = next(column for column in columns if column["name"] == "another_id")
+    assert another_id["notnull"] == 1
+    await connection.disconnect()
+
+
+def test_migration_generator_uses_model_field_default(tmp_path):
+    models = tmp_path / "models"
+    models.mkdir()
+    (models / "Widget.py").write_text(
+        "from future.interfaces.IModel import IModel\n\n"
+        "class Widget(IModel):\n"
+        '    __table__ = "widgets"\n'
+        "    id: str\n"
+        '    another_id: str = "unassigned"\n'
+    )
+    migration = Path(MigrationGenerator(models_path=str(models), migrations_path=str(tmp_path / "migrations")).make("Widget")[0]).read_text()
+    assert 'table.string("another_id").default(\'unassigned\')' in migration

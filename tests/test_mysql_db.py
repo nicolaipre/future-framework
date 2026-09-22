@@ -80,11 +80,13 @@ async def test_mysql_schema_update_uses_driver_specific_rebuild():
     mysql.client = engine
     blueprint = Blueprint("rows", "default", action="update")
     blueprint.id()
-    blueprint.string("name").nullable()
+    blueprint.string("name")
 
     result = await mysql.schema_update(blueprint)
 
     sql = "\n".join(str(call.args[0]) for call in writer.execute.call_args_list)
     assert result["status"] == "updated"
     assert "CREATE TABLE `_future_migrate_rows`" in sql
+    assert "SELECT COALESCE(`id`, :future_backfill_0), :future_backfill_1 FROM `rows`" in sql
+    assert writer.execute.call_args_list[3].args[1]["future_backfill_1"] == ""
     assert "`_future_migrate_rows` TO `rows`" in sql
