@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from future.databases.MySQLDatabase import MySQLDatabase
 from future.interfaces.IModel import IModel
+from future.migrations import Blueprint
 
 
 class Row(IModel):
@@ -62,3 +63,28 @@ async def test_mysql_connect_builds_url():
         urls = [call.args[0] for call in create_async_engine.call_args_list]
         assert any(url.endswith("/d") and "mysql+aiomysql://u:p@h:3306/d" == url for url in urls)
         assert any(url.endswith("/") for url in urls)
+
+
+async def test_mysql_schema_update_uses_driver_specific_rebuild():
+    mysql = MySQLDatabase(host="localhost", port=3306, username="u", password="p", database="db")
+    mysql.table_exists = AsyncMock(return_value=True)
+    result = MagicMock()
+    result.mappings.return_value.all.return_value = [{"COLUMN_NAME": "id"}]
+    engine, _ = _engine_with_execute(result)
+    writer = MagicMock()
+    writer.execute = AsyncMock()
+    begin = MagicMock()
+    begin.__aenter__ = AsyncMock(return_value=writer)
+    begin.__aexit__ = AsyncMock(return_value=None)
+    engine.begin = MagicMock(return_value=begin)
+    mysql.client = engine
+    blueprint = Blueprint("rows", "default", action="update")
+    blueprint.id()
+    blueprint.string("name").nullable()
+
+    result = await mysql.schema_update(blueprint)
+
+    sql = "\n".join(str(call.args[0]) for call in writer.execute.call_args_list)
+    assert result["status"] == "updated"
+    assert "CREATE TABLE `_future_migrate_rows`" in sql
+    assert "`_future_migrate_rows` TO `rows`" in sql

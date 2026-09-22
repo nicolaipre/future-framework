@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Model-based update migrations: generating a migration again after changing a model now emits a full `Schema.update` snapshot, with the preceding snapshot in `down()` for rollback
+- Polymorphic `schema_update` support for SQLite, MySQL, Postgres, ClickHouse, Elasticsearch, MongoDB, and Redis; Redis now stores schema snapshots and migration history as metadata
+
+### Fixed
+- Running a newly generated migration for an existing model no longer reports success after a `CREATE ... IF NOT EXISTS` no-op
 
 
 ## [2.1.1] - 2026-09-20

@@ -40,6 +40,9 @@ class IDatabase(Interface):
     async def schema_create(self, blueprint):
         raise NotImplementedError
 
+    async def schema_update(self, blueprint):
+        raise NotImplementedError
+
     async def schema_drop(self, name):
         raise NotImplementedError
 

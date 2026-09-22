@@ -27,6 +27,12 @@ class RedisDatabase(IDatabase):
     def _ids_key(self, table):
         return f"{table}:ids"
 
+    def _schema_key(self, table):
+        return f"future:schema:{table}"
+
+    def _migrations_key(self):
+        return "future:migrations"
+
     async def save(self, model):
         if self.client is None:
             await self.connect()
@@ -125,22 +131,76 @@ class RedisDatabase(IDatabase):
         return {"status": "updated", "id": doc_id}
 
     async def schema_create(self, blueprint):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        schema = self._schema_document(blueprint)
+        created = await self.client.set(self._schema_key(blueprint.name), json.dumps(schema, sort_keys=True, default=str), nx=True)
+        return {"status": "created" if created else "exists", "table": blueprint.name}
+
+    def _schema_document(self, blueprint):
+        return {
+            "name": blueprint.name,
+            "columns": [
+                {
+                    "name": column.name,
+                    "type": column.type,
+                    "length": column.length,
+                    "nullable": column.is_nullable,
+                    "unique": column.is_unique,
+                    "primary": column.is_primary,
+                    "index": column.is_index,
+                    "default": column.default_value,
+                }
+                for column in blueprint.columns
+            ],
+        }
+
+    async def table_exists(self, name):
+        if self.client is None:
+            await self.connect()
+        return bool(await self.client.exists(self._schema_key(name)))
+
+    async def schema_update(self, blueprint):
+        if self.client is None:
+            await self.connect()
+        await self.client.set(self._schema_key(blueprint.name), json.dumps(self._schema_document(blueprint), sort_keys=True, default=str))
+        return {"status": "updated", "table": blueprint.name, "columns": sorted(column.name for column in blueprint.columns)}
 
     async def schema_drop(self, name):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        ids = await self.client.smembers(self._ids_key(name))
+        keys = [self._key(name, doc_id) for doc_id in ids]
+        keys.extend([self._ids_key(name), self._schema_key(name)])
+        if keys:
+            await self.client.delete(*keys)
+        return {"status": "dropped", "table": name}
 
     async def migrations_get(self):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        return list(await self.client.zrange(self._migrations_key(), 0, -1))
 
     async def migrations_put(self, name, batch):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        await self.client.zadd(self._migrations_key(), {name: int(batch)})
 
     async def migrations_delete(self, name):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        await self.client.zrem(self._migrations_key(), name)
 
     async def migrations_max_batch(self):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        rows = await self.client.zrevrange(self._migrations_key(), 0, 0, withscores=True)
+        if not rows:
+            return 0
+        return int(rows[0][1])
 
     async def migrations_batch_for(self, name):
-        raise NotImplementedError("Redis has no schema; structural migrations are unsupported")
+        if self.client is None:
+            await self.connect()
+        score = await self.client.zscore(self._migrations_key(), name)
+        return None if score is None else int(score)

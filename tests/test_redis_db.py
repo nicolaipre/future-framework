@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from future.databases.RedisDatabase import RedisDatabase
 from future.interfaces.IModel import IModel
+from future.migrations import Blueprint
 
 
 class Row(IModel):
@@ -48,3 +49,26 @@ async def test_redis_connect_uses_asyncio_client():
         redis_cls.assert_called()
         assert redis_cls.call_args.kwargs["db"] == 2
         client.ping.assert_awaited()
+
+
+async def test_redis_supports_schema_snapshots_and_migration_history():
+    redis = RedisDatabase(host="localhost", port=6379, username="", password="", database="0")
+    client = MagicMock()
+    client.set = AsyncMock(return_value=True)
+    client.zadd = AsyncMock()
+    client.zrange = AsyncMock(return_value=["001_create_rows"])
+    client.zscore = AsyncMock(return_value=2.0)
+    client.zrevrange = AsyncMock(return_value=[("001_create_rows", 2.0)])
+    redis.client = client
+    blueprint = Blueprint("rows", "default", action="update")
+    blueprint.id()
+    blueprint.string("name")
+
+    result = await redis.schema_update(blueprint)
+    await redis.migrations_put("001_create_rows", 2)
+
+    assert result["status"] == "updated"
+    assert "\"name\": \"name\"" in client.set.call_args.args[1]
+    assert await redis.migrations_get() == ["001_create_rows"]
+    assert await redis.migrations_max_batch() == 2
+    assert await redis.migrations_batch_for("001_create_rows") == 2

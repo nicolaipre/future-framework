@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from future.databases.PostgresDatabase import PostgresDatabase
 from future.interfaces.IModel import IModel
+from future.migrations import Blueprint
 
 
 class Row(IModel):
@@ -53,3 +54,28 @@ async def test_postgres_connect_builds_url():
         await postgres.connect()
         url = create_async_engine.call_args[0][0]
         assert url == "postgresql+asyncpg://u:p%40ss@h:5432/d"
+
+
+async def test_postgres_schema_update_uses_driver_specific_rebuild():
+    postgres = PostgresDatabase(host="localhost", port=5432, username="u", password="p", database="db")
+    postgres.table_exists = AsyncMock(return_value=True)
+    result = MagicMock()
+    result.mappings.return_value.all.return_value = [{"column_name": "id"}]
+    engine, _ = _engine_with_execute(result)
+    writer = MagicMock()
+    writer.execute = AsyncMock()
+    begin = MagicMock()
+    begin.__aenter__ = AsyncMock(return_value=writer)
+    begin.__aexit__ = AsyncMock(return_value=None)
+    engine.begin = MagicMock(return_value=begin)
+    postgres.client = engine
+    blueprint = Blueprint("rows", "default", action="update")
+    blueprint.id()
+    blueprint.string("name").nullable()
+
+    result = await postgres.schema_update(blueprint)
+
+    sql = "\n".join(str(call.args[0]) for call in writer.execute.call_args_list)
+    assert result["status"] == "updated"
+    assert 'CREATE TABLE "_future_' in sql
+    assert 'RENAME TO "rows"' in sql

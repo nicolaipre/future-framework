@@ -81,6 +81,9 @@ class FakeDatabase(IDatabase):
     async def schema_create(self, blueprint):
         pass
 
+    async def schema_update(self, blueprint):
+        pass
+
     async def schema_drop(self, name):
         pass
 

@@ -3,6 +3,7 @@ from sqlalchemy import BigInteger, String, bindparam, text
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import create_async_engine
 from urllib.parse import quote_plus
+from uuid import uuid4
 
 
 class PostgresDatabase(IDatabase):
@@ -128,6 +129,15 @@ class PostgresDatabase(IDatabase):
     async def schema_create(self, blueprint):
         if self.client is None:
             await self.connect()
+        parts, indexes = self._schema_parts(blueprint)
+        create_sql = text(f"CREATE TABLE IF NOT EXISTS \"{blueprint.name}\" ({', '.join(parts)})")
+        async with self.client.begin() as connection:
+            await connection.execute(create_sql)
+            for index_name in indexes:
+                await connection.execute(text(f"CREATE INDEX IF NOT EXISTS \"index_{blueprint.name}_{index_name}\" ON \"{blueprint.name}\" (\"{index_name}\")"))
+        return {"status": "created", "table": blueprint.name}
+
+    def _schema_parts(self, blueprint):
         definitions = []
         uniques = []
         indexes = []
@@ -159,13 +169,31 @@ class PostgresDatabase(IDatabase):
                 uniques.append(f"UNIQUE (\"{column.name}\")")
             if column.is_index and not column.is_primary and not column.is_unique:
                 indexes.append(column.name)
-        parts = definitions + uniques
-        create_sql = text(f"CREATE TABLE IF NOT EXISTS \"{blueprint.name}\" ({', '.join(parts)})")
+        return definitions + uniques, indexes
+
+    async def schema_update(self, blueprint):
+        if self.client is None:
+            await self.connect()
+        if not await self.table_exists(blueprint.name):
+            return await self.schema_create(blueprint)
+        sql = text("SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = :table ORDER BY ordinal_position")
+        async with self.client.connect() as connection:
+            rows = (await connection.execute(sql, {"table": blueprint.name})).mappings().all()
+        existing = {row["column_name"] for row in rows}
+        common = [column.name for column in blueprint.columns if column.name in existing]
+        temporary = f"_future_{uuid4().hex[:8]}_{blueprint.name}"[:63]
+        parts, indexes = self._schema_parts(blueprint)
         async with self.client.begin() as connection:
-            await connection.execute(create_sql)
+            await connection.execute(text(f'DROP TABLE IF EXISTS "{temporary}"'))
+            await connection.execute(text(f'CREATE TABLE "{temporary}" ({", ".join(parts)})'))
+            if common:
+                columns = ", ".join(f'"{name}"' for name in common)
+                await connection.execute(text(f'INSERT INTO "{temporary}" ({columns}) SELECT {columns} FROM "{blueprint.name}"'))
+            await connection.execute(text(f'DROP TABLE "{blueprint.name}"'))
+            await connection.execute(text(f'ALTER TABLE "{temporary}" RENAME TO "{blueprint.name}"'))
             for index_name in indexes:
                 await connection.execute(text(f"CREATE INDEX IF NOT EXISTS \"index_{blueprint.name}_{index_name}\" ON \"{blueprint.name}\" (\"{index_name}\")"))
-        return {"status": "created", "table": blueprint.name}
+        return {"status": "updated", "table": blueprint.name, "columns": sorted(column.name for column in blueprint.columns)}
 
     async def schema_drop(self, name):
         if self.client is None:

@@ -115,6 +115,13 @@ class ElasticsearchDatabase(IDatabase):
     async def schema_create(self, blueprint):
         if self.client is None:
             await self.connect()
+        properties = self._mapping_properties(blueprint)
+        if await self.client.indices.exists(index=blueprint.name):
+            return {"status": "exists", "index": blueprint.name}
+        result = await self.client.indices.create(index=blueprint.name, mappings={"properties": properties})
+        return result
+
+    def _mapping_properties(self, blueprint):
         properties = {}
         for column in blueprint.columns:
             if column.type == "string" and (column.is_primary or column.name == "id"):
@@ -133,10 +140,35 @@ class ElasticsearchDatabase(IDatabase):
                 properties[column.name] = {"type": "date"}
             else:
                 raise ValueError(f"Unsupported column type: {column.type}")
-        if await self.client.indices.exists(index=blueprint.name):
-            return {"status": "exists", "index": blueprint.name}
-        result = await self.client.indices.create(index=blueprint.name, mappings={"properties": properties})
-        return result
+        return properties
+
+    async def schema_update(self, blueprint):
+        if self.client is None:
+            await self.connect()
+        if not await self.client.indices.exists(index=blueprint.name):
+            return await self.schema_create(blueprint)
+        desired = self._mapping_properties(blueprint)
+        mapping = await self.client.indices.get_mapping(index=blueprint.name)
+        current = mapping.get(blueprint.name, {}).get("mappings", {}).get("properties", {})
+        if current == desired:
+            return {"status": "unchanged", "index": blueprint.name}
+        additive = set(current).issubset(desired) and all(current[name] == desired[name] for name in current)
+        if additive:
+            await self.client.indices.put_mapping(index=blueprint.name, properties=desired)
+            return {"status": "updated", "index": blueprint.name, "properties": sorted(desired)}
+
+        temporary = f"_future_migrate_{blueprint.name}"
+        if await self.client.indices.exists(index=temporary):
+            await self.client.indices.delete(index=temporary)
+        await self.client.indices.create(index=temporary, mappings={"dynamic": False, "properties": desired})
+        keep = list(desired)
+        script = {"source": "ctx._source.keySet().removeIf(k -> !params.keep.contains(k))", "params": {"keep": keep}}
+        await self.client.reindex(body={"source": {"index": blueprint.name}, "dest": {"index": temporary}, "script": script}, wait_for_completion=True, refresh=True)
+        await self.client.indices.delete(index=blueprint.name)
+        await self.client.indices.create(index=blueprint.name, mappings={"dynamic": False, "properties": desired})
+        await self.client.reindex(body={"source": {"index": temporary}, "dest": {"index": blueprint.name}}, wait_for_completion=True, refresh=True)
+        await self.client.indices.delete(index=temporary)
+        return {"status": "updated", "index": blueprint.name, "properties": sorted(desired)}
 
     async def schema_drop(self, name):
         if self.client is None:

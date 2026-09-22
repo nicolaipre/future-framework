@@ -56,6 +56,10 @@ future make:migrations
 future make:seeds             # skips seed files that already exist
 ```
 
+The first migration generated for a model is a create snapshot. After changing the model annotations, run `make:migration` again: Future detects the earlier snapshot and generates an update migration. Its `up()` contains the new model shape and its `down()` contains the preceding shape, so both migrate and rollback remain model-driven.
+
+When adding a column to a table that already contains rows, make the annotation optional or edit the generated column to supply `.default(...)`; a new required column without a value cannot preserve those rows and the database will reject the migration.
+
 Then apply / run:
 
 ```bash
@@ -107,6 +111,30 @@ class StockSeeder(Seeder):
 ```
 
 Edit generated files if you need indexes, extras, or richer seed data. Re-running generators does not replace hand-edited migrations; seeds skip existing files on `make:seeds`.
+
+For example, adding `market: str | None` to `Stock` and generating again produces:
+
+```python
+class UpdateStocks(Migration):
+    __connection__ = "default"
+
+    async def up(self):
+        async with Schema.update("stocks") as table:
+            table.id()
+            table.string("name")
+            table.string("symbol")
+            table.string("instrument_id")
+            table.float("price").nullable()
+            table.string("market").nullable()
+
+    async def down(self):
+        async with Schema.update("stocks") as table:
+            table.id()
+            table.string("name")
+            table.string("symbol")
+            table.string("instrument_id")
+            table.float("price").nullable()
+```
 
 ## CRUD
 ```python

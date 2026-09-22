@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from future.databases.MongoDBDatabase import MongoDBDatabase
 from future.interfaces.IModel import IModel
+from future.migrations import Blueprint
 
 
 class Row(IModel):
@@ -42,3 +43,24 @@ async def test_mongo_connect_builds_uri():
         await mongo.connect()
         client_cls.assert_called_with("mongodb://u:p@h:27017/d")
         assert mongo.db is client["d"]
+
+
+async def test_mongo_schema_update_replaces_validator():
+    mongo = MongoDBDatabase(host="localhost", port=27017, username="", password="", database="db")
+    collection = MagicMock()
+    collection.create_index = AsyncMock()
+    mongo.db = MagicMock()
+    mongo.db.list_collection_names = AsyncMock(return_value=["rows"])
+    mongo.db.command = AsyncMock()
+    mongo.db.__getitem__.return_value = collection
+    mongo.client = MagicMock()
+    blueprint = Blueprint("rows", "default", action="update")
+    blueprint.id()
+    blueprint.string("name").nullable()
+
+    result = await mongo.schema_update(blueprint)
+
+    assert result["status"] == "updated"
+    command = mongo.db.command.call_args.args[0]
+    assert command["collMod"] == "rows"
+    assert set(command["validator"]["$jsonSchema"]["properties"]) == {"id", "name"}

@@ -1,6 +1,7 @@
 # Migrations — Orator/Masonite-style schema, discovery, and generation.
 
 
+import ast
 import importlib.util
 import inflection
 
@@ -71,6 +72,8 @@ class Blueprint:
         connection = Database().get_connection(self.connection_name)
         if self.action == "create":
             await connection.schema_create(self)
+        elif self.action == "update":
+            await connection.schema_update(self)
         return False
 
     def _add(self, column):
@@ -111,6 +114,9 @@ class SchemaMeta(type):
 
     def create(cls, name):
         return Blueprint(name, cls._connection_name, action="create")
+
+    def update(cls, name):
+        return Blueprint(name, cls._connection_name, action="update")
 
     async def drop(cls, name):
         await Database().get_connection(cls._connection_name).schema_drop(name)
@@ -267,12 +273,49 @@ class MigrationGenerator:
             lines.append("            table.timestamps()")
         return lines
 
-    def render(self, model):
+    def _schema_call(self, node, table):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            return False
+        if node.func.attr not in ("create", "update") or not isinstance(node.func.value, ast.Name) or node.func.value.id != "Schema":
+            return False
+        return bool(node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == table)
+
+    def _previous_blueprint_lines(self, table):
+        directory = Path(self.migrations_path)
+        if not directory.exists():
+            return None
+        for path in reversed(sorted(directory.glob("*.py"))):
+            try:
+                source = path.read_text()
+                tree = ast.parse(source)
+            except (OSError, SyntaxError):
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.AsyncFunctionDef) or node.name != "up":
+                    continue
+                for statement in node.body:
+                    if not isinstance(statement, ast.AsyncWith):
+                        continue
+                    if not statement.items or not self._schema_call(statement.items[0].context_expr, table):
+                        continue
+                    lines = []
+                    for item in statement.body:
+                        if not isinstance(item, ast.Expr) or not isinstance(item.value, ast.Call):
+                            continue
+                        expression = (ast.get_source_segment(source, item) or ast.unparse(item)).strip()
+                        if expression.startswith("table."):
+                            lines.append(f"            {expression}")
+                    return lines
+        return None
+
+    def render(self, model, previous_lines=None):
         table = self.table_name(model)
-        class_name = f"Create{inflection.camelize(table)}"
+        is_update = previous_lines is not None
+        action = "update" if is_update else "create"
+        class_name = f"{'Update' if is_update else 'Create'}{inflection.camelize(table)}"
         connection = getattr(model, "__connection__", "default")
         columns = "\n".join(self.blueprint_lines(model))
-        return (
+        rendered = (
             "from future.migrations import Migration, Schema\n"
             "\n"
             "\n"
@@ -280,12 +323,14 @@ class MigrationGenerator:
             f'    __connection__ = "{connection}"\n'
             "\n"
             "    async def up(self):\n"
-            f'        async with Schema.create("{table}") as table:\n'
+            f'        async with Schema.{action}("{table}") as table:\n'
             f"{columns}\n"
             "\n"
-            "    async def down(self):\n"
-            f'        await Schema.drop("{table}")\n'
         )
+        if not is_update:
+            return rendered + "    async def down(self):\n" + f'        await Schema.drop("{table}")\n'
+        previous = "\n".join(previous_lines)
+        return rendered + "    async def down(self):\n" + f'        async with Schema.update("{table}") as table:\n' + f"{previous}\n"
 
     def make(self, model_name=None):
         if model_name is None:
@@ -301,12 +346,17 @@ class MigrationGenerator:
 
     def write(self, model, stamp_offset=0):
         table = self.table_name(model)
-        stamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+        previous_lines = self._previous_blueprint_lines(table)
+        action = "update" if previous_lines is not None else "create"
+        stamp = datetime.now().strftime("%Y_%m_%d_%H%M%S_%f")
         if stamp_offset:
             stamp = f"{stamp}_{stamp_offset:02d}"
-        file_name = f"{stamp}_create_{table}.py"
         directory = Path(self.migrations_path)
         directory.mkdir(parents=True, exist_ok=True)
-        path = directory / file_name
-        path.write_text(self.render(model))
+        path = directory / f"{stamp}_{action}_{table}.py"
+        collision = 1
+        while path.exists():
+            path = directory / f"{stamp}_{collision:02d}_{action}_{table}.py"
+            collision += 1
+        path.write_text(self.render(model, previous_lines=previous_lines))
         return str(path)

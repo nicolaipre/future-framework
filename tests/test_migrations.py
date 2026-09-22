@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+from sqlalchemy import text
 
 from future.database import Database
 from future.databases.SQLiteDatabase import SQLiteDatabase
@@ -36,6 +37,33 @@ async def test_schema_create_and_drop_roundtrip():
     assert found is not None and found.name == "w"
     await Schema.drop("widgets")
     assert await connection.table_exists("widgets") is False
+    await connection.disconnect()
+
+
+async def test_schema_update_reconciles_columns_and_preserves_rows():
+    connection = _sqlite()
+    Schema.connection("default")
+    async with Schema.create("widgets") as table:
+        table.id()
+        table.string("name")
+    await Widget(id="1", name="kept").save()
+
+    async with Schema.update("widgets") as table:
+        table.id()
+        table.string("name")
+        table.integer("count").nullable()
+    async with connection.client.connect() as database:
+        columns = (await database.execute(text('PRAGMA table_info("widgets")'))).mappings().all()
+    assert [column["name"] for column in columns] == ["id", "name", "count"]
+    assert (await Widget.find("1")).name == "kept"
+
+    async with Schema.update("widgets") as table:
+        table.id()
+        table.string("name")
+    async with connection.client.connect() as database:
+        columns = (await database.execute(text('PRAGMA table_info("widgets")'))).mappings().all()
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert (await Widget.find("1")).name == "kept"
     await connection.disconnect()
 
 
@@ -84,3 +112,66 @@ def test_migration_generator_skips_imodel_relations(tmp_path):
     assert 'table.string("title")' in text
     assert 'table.string("author_id")' in text
     assert 'table.string("author")' not in text
+
+
+def test_migration_generator_uses_model_snapshots_for_updates_and_rollback(tmp_path):
+    models = tmp_path / "models"
+    migrations = tmp_path / "migrations"
+    models.mkdir()
+    model = models / "Widget.py"
+    model.write_text(
+        "from future.interfaces.IModel import IModel\n\n"
+        "class Widget(IModel):\n"
+        '    __table__ = "widgets"\n'
+        "    id: str\n"
+        "    name: str\n"
+    )
+    generator = MigrationGenerator(models_path=str(models), migrations_path=str(migrations))
+    first = Path(generator.make("Widget")[0])
+    assert "_create_widgets.py" in first.name
+    assert 'Schema.create("widgets")' in first.read_text()
+
+    model.write_text(model.read_text() + "    count: int | None\n")
+    second = Path(generator.make("Widget")[0])
+    rendered = second.read_text()
+    assert "_update_widgets.py" in second.name
+    assert rendered.count('Schema.update("widgets")') == 2
+    up, down = rendered.split("    async def down(self):")
+    assert 'table.integer("count").nullable()' in up
+    assert 'table.integer("count")' not in down
+    assert 'table.string("name")' in down
+
+
+async def test_generated_update_migration_changes_table_and_rolls_back(tmp_path):
+    connection = _sqlite()
+    models = tmp_path / "models"
+    migrations = tmp_path / "migrations"
+    models.mkdir()
+    model = models / "Widget.py"
+    model.write_text(
+        "from future.interfaces.IModel import IModel\n\n"
+        "class Widget(IModel):\n"
+        '    __table__ = "widgets"\n'
+        "    id: str\n"
+        "    name: str\n"
+    )
+    generator = MigrationGenerator(models_path=str(models), migrations_path=str(migrations))
+    generator.make("Widget")
+    migrator = Migrator(path=str(migrations))
+    assert len(await migrator.run()) == 1
+    await Widget(id="1", name="kept").save()
+
+    model.write_text(model.read_text() + "    count: int | None\n")
+    generator.make("Widget")
+    assert len(await migrator.run()) == 1
+    async with connection.client.connect() as database:
+        columns = (await database.execute(text('PRAGMA table_info("widgets")'))).mappings().all()
+    assert [column["name"] for column in columns] == ["id", "name", "count"]
+    assert (await Widget.find("1")).name == "kept"
+
+    assert len(await migrator.rollback()) == 1
+    async with connection.client.connect() as database:
+        columns = (await database.execute(text('PRAGMA table_info("widgets")'))).mappings().all()
+    assert [column["name"] for column in columns] == ["id", "name"]
+    assert (await Widget.find("1")).name == "kept"
+    await connection.disconnect()
