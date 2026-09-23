@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "future-framework"
-version = "3.0.1"
+version = "3.0.2"
 description = "ASGI-based framework for web APIs"
 authors = ["nicolaipre"]
 license = "LICENSE"
