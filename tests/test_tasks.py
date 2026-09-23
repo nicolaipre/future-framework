@@ -1,3 +1,5 @@
+import asyncio
+
 from future.interfaces.ITask import ITask
 from future.lifespan import Lifespan
 from future.taskscheduler import CronScheduler, Unit
@@ -68,3 +70,33 @@ async def test_scheduler_run_task_invokes_run():
     await scheduler._run_task(scheduler.get_task("count"))
     assert CountTask.count == 1
     assert scheduler.get_task("count").last_run is not None
+
+
+async def test_scheduler_does_not_start_a_task_while_it_is_running():
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    class SlowTask(ITask):
+        name = "slow"
+        interval = 1
+        unit = Unit.HOURS
+
+        def __init__(self) -> None:
+            self.runs = 0
+
+        async def run(self) -> None:
+            self.runs += 1
+            started.set()
+            await release.wait()
+
+    task = SlowTask()
+    scheduler = CronScheduler()
+    scheduler.check_interval = 0.01
+    scheduler.add_task(task)
+    await scheduler.start()
+    await asyncio.wait_for(started.wait(), timeout=1)
+    await asyncio.sleep(0.05)
+    assert task.runs == 1
+    release.set()
+    await asyncio.sleep(0.02)
+    await scheduler.stop()

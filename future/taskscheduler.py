@@ -27,6 +27,7 @@ class ScheduledTask:
         self.jitter = task.jitter
         self.last_run: Optional[datetime] = None
         self.next_run: Optional[datetime] = None
+        self.running = False
 
         if self.start_time is None:
             self.start_time = datetime.now()
@@ -85,6 +86,7 @@ class CronScheduler:
 
     async def _run_task(self, scheduled: ScheduledTask) -> None:
         """Run a single task."""
+        scheduled.running = True
         try:
             log.debug(f"Running scheduled task '{scheduled.name}'")
             await scheduled.task.run()
@@ -99,6 +101,8 @@ class CronScheduler:
         except Exception as e:
             log.error(f"Error running scheduled task '{scheduled.name}': {e}")
             # Don't update last_run on error, so it will retry next cycle
+        finally:
+            scheduled.running = False
 
     async def _scheduler_loop(self) -> None:
         """Main scheduler loop that checks for tasks to run."""
@@ -110,7 +114,8 @@ class CronScheduler:
 
             # Check which tasks need to run
             for scheduled in self.tasks.values():
-                if scheduled.next_run and now >= scheduled.next_run:
+                if scheduled.next_run and now >= scheduled.next_run and not scheduled.running:
+                    scheduled.running = True
                     tasks_to_run.append(scheduled)
 
             # Run tasks that are due
