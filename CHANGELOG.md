@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [3.0.2] - 2026-09-23
+### Fixed
+- The task scheduler no longer starts another instance of a task while its previous run is still in progress
+
+
 ## [3.0.1] - 2026-09-22
 ### Fixed
 - Relational update migrations now backfill newly required columns before enforcing `NOT NULL`, using the model default or a type-appropriate zero value
