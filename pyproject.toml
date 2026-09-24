@@ -15,7 +15,7 @@ packages = [{ include = "future" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-uvicorn = "^0.51.0"
+uvicorn = ">=0.51,<0.54"
 httpx = "^0.28.1"
 rich = "^15.0.0"
 elasticsearch = ">=8.15.0,<9"
