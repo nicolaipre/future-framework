@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [3.1.0] - 2026-09-25
 ### Added
 - Interval tasks can define timezone-aware `WorkingHours`, including weekday and overnight windows; tasks that become due outside the window run once at the next opening
 
