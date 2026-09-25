@@ -128,27 +128,25 @@
 <h2 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Python <strong>3.12+</strong></li>
-<li><a href="https://python-poetry.org/">Poetry</a> (recommended) or pip</li>
+<li><a href="https://docs.astral.sh/uv/">uv</a></li>
 </ul>
 <h2 id="package">Package<a class="headerlink" href="#package" title="Permanent link">&para;</a></h2>
 <p>PyPI name is <strong><code>future-framework</code></strong>; import name is always <strong><code>future</code></strong>.</p>
-<pre><code class="language-bash">poetry add future-framework
-# or
-pip install future-framework
+<pre><code class="language-bash">uv add future-framework
 </code></pre>
 <pre><code class="language-toml"># pyproject.toml
-future-framework = &quot;^2.0.0&quot;
+dependencies = [&quot;future-framework&gt;=3.0.2,&lt;4.0.0&quot;]
 </code></pre>
 <pre><code class="language-python">from future.application import Future
 </code></pre>
 <h2 id="scaffold-an-app">Scaffold an app<a class="headerlink" href="#scaffold-an-app" title="Permanent link">&para;</a></h2>
-<pre><code class="language-bash">poetry run future init myproject
+<pre><code class="language-bash">uv run future init myproject
 cd myproject
 cp .env.example .env
-poetry install
-poetry run future migrate
-poetry run future seed
-poetry run python run.py
+uv sync
+uv run future migrate
+uv run future seed
+uv run python run.py
 </code></pre>
 <p>See <a href="../getting-started/">Getting started</a> and <a href="../configuration/">Configuration</a>.</p>
               
