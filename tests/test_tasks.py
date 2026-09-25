@@ -136,6 +136,8 @@ def test_working_hours_handle_both_sides_of_a_dst_fold():
 def test_working_hours_validate_configuration():
     with pytest.raises(ValueError, match="different"):
         WorkingHours(start=time(9), end=time(9))
+    with pytest.raises(ValueError, match="cannot be empty"):
+        WorkingHours(start=time(9), end=time(17), weekdays=frozenset())
     with pytest.raises(ValueError, match="timezone-aware"):
         WorkingHours(start=time(9), end=time(17)).allows(datetime(2026, 1, 5, 10))
     with pytest.raises(ValueError, match="Unknown"):

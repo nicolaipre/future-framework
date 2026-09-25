@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
 from datetime import datetime, time
 from enum import Enum, IntEnum
+from typing import Optional
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
@@ -21,16 +21,17 @@ class Weekday(IntEnum):
     SUNDAY = 6
 
 
-@dataclass(frozen=True, slots=True)
 class WorkingHours:
     """A recurring local-time window in which a scheduled task may run."""
 
-    start: time
-    end: time
-    timezone: str = "UTC"
-    weekdays: frozenset[Weekday] = field(default_factory=lambda: frozenset({Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY, Weekday.FRIDAY}))
+    def __init__(self, start: time, end: time, timezone: str = "UTC", weekdays: Optional[frozenset[Weekday]] = None) -> None:
+        self.start = start
+        self.end = end
+        self.timezone = timezone
+        self.weekdays = weekdays if weekdays is not None else frozenset({Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY, Weekday.FRIDAY})
+        self._validate()
 
-    def __post_init__(self) -> None:
+    def _validate(self) -> None:
         if self.start.tzinfo is not None or self.end.tzinfo is not None:
             raise ValueError("Working-hours start and end must be timezone-naive times")
         if self.start == self.end:
@@ -47,7 +48,7 @@ class WorkingHours:
             raise ValueError("Working-hours weekdays must contain valid Weekday values") from error
         if not weekdays:
             raise ValueError("Working-hours weekdays cannot be empty")
-        object.__setattr__(self, "weekdays", weekdays)
+        self.weekdays = weekdays
 
     def allows(self, moment: datetime) -> bool:
         """Return whether an aware instant falls within this working window."""
