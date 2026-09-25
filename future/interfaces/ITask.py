@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional
 
 from future.interfacing import Interface
-from future.taskscheduler import Unit
+from future.scheduling import Unit, WorkingHours
 
 
 class ITask(Interface):
@@ -11,6 +11,7 @@ class ITask(Interface):
     unit: Optional[Unit] = None
     start_time: Optional[datetime] = None
     jitter: Optional[float] = None
+    working_hours: Optional[WorkingHours] = None
 
     async def run(self) -> None:
         raise NotImplementedError

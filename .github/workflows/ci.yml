@@ -10,10 +10,13 @@ jobs:
   test:
     name: "Python ${{ matrix.python-version }}"
     runs-on: "ubuntu-latest"
+    env:
+      UV_LOCKED: "1"
+      UV_PYTHON: "${{ matrix.python-version }}"
 
     strategy:
       matrix:
-        python-version: ["3.12", "3.13"]
+        python-version: ["3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout code
@@ -25,34 +28,34 @@ jobs:
           python-version: "${{ matrix.python-version }}"
           allow-prereleases: true
 
-      - name: Install Poetry
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install poetry
+      - name: Install uv
+        uses: "astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4" # v10.1.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
 
       - name: Run linting & type checking
         run: |
           # Check only — do NOT run `ruff format` in CI (would rewrite long one-line defs).
-          poetry run ruff check future tests
-          poetry run mypy future
-          poetry run mypy tests
+          uv run ruff check future tests
+          uv run mypy future
+          uv run mypy tests
 
       - name: Build package
         run: |
-          poetry run python -m build
-          poetry run twine check dist/*
+          uv run python -m build
+          uv run twine check dist/*
 
       - name: Run tests
         run: |
-          poetry run coverage run -m pytest tests
+          uv run coverage run -m pytest tests
 
       - name: Enforce coverage
         run: |
-          poetry run coverage report --show-missing --skip-covered --fail-under=20
-          poetry run coverage xml
+          uv run coverage report --show-missing --skip-covered --fail-under=20
+          uv run coverage xml
 
       - name: Upload coverage reports to Codecov
         if: matrix.python-version == '3.12'
@@ -66,6 +69,9 @@ jobs:
     runs-on: "ubuntu-latest"
     needs: test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    env:
+      UV_LOCKED: "1"
+      UV_PYTHON: "3.12"
 
     steps:
       - name: Checkout code
@@ -76,21 +82,21 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Poetry
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install poetry
+      - name: Install uv
+        uses: "astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4" # v10.1.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
 
       - name: Build package
         run: |
-          poetry run python -m build
-          poetry run twine check dist/*
+          uv run python -m build
+          uv run twine check dist/*
 
       - name: Upload build artifacts
         uses: "actions/upload-artifact@v7"
         with:
           name: dist
-          path: dist/ 
+          path: dist/

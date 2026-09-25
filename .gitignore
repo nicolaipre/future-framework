@@ -35,7 +35,7 @@ sdist/
 venv/
 env/
 
-# Poetry — lock is local for this library; CI resolves from pyproject
+# Poetry — uv.lock is authoritative for CI; Poetry's lock remains local
 poetry.lock
 
 # Editors / OS

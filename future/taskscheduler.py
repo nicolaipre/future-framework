@@ -1,36 +1,39 @@
 import asyncio
 import random
 
-from datetime import datetime, timedelta
-from enum import Enum
-from typing import Optional
+from datetime import datetime, timedelta, timezone as datetime_timezone
+from typing import Callable, Optional
 
 from future.logger import log
+from future.scheduling import Unit, Weekday, WorkingHours
+
+__all__ = ["CronScheduler", "ScheduledTask", "Unit", "Weekday", "WorkingHours"]
 
 
-class Unit(Enum):
-    SECONDS = "seconds"
-    MINUTES = "minutes"
-    HOURS = "hours"
-    DAYS = "days"
+def _as_utc(moment: datetime) -> datetime:
+    """Normalize datetimes for safe comparison and interval arithmetic."""
+    if moment.tzinfo is None:
+        moment = moment.astimezone()
+    return moment.astimezone(datetime_timezone.utc)
 
 
 class ScheduledTask:
     """Represents a scheduled task with its timing configuration."""
 
-    def __init__(self, task) -> None:
+    def __init__(self, task, now: Optional[datetime] = None) -> None:
         self.task = task
         self.name = task.name
         self.interval = task.interval
         self.unit = task.unit
-        self.start_time = task.start_time
+        self.start_time = _as_utc(task.start_time) if task.start_time is not None else _as_utc(now or datetime.now(datetime_timezone.utc))
         self.jitter = task.jitter
+        self.working_hours = getattr(task, "working_hours", None)
+        if self.working_hours is not None and not isinstance(self.working_hours, WorkingHours):
+            raise TypeError("task.working_hours must be a WorkingHours instance or None")
         self.last_run: Optional[datetime] = None
         self.next_run: Optional[datetime] = None
         self.running = False
 
-        if self.start_time is None:
-            self.start_time = datetime.now()
         self.calculate_next_run()
 
     def calculate_next_run(self) -> None:
@@ -49,21 +52,32 @@ class ScheduledTask:
         if self.next_run is not None and self.jitter and self.jitter > 0:
             self.next_run = self.next_run + timedelta(seconds=random.uniform(0, self.jitter))
 
+    def is_due(self, now: datetime) -> bool:
+        """Return whether the task is due and permitted to run now."""
+        now = _as_utc(now)
+        if self.running or self.next_run is None or now < self.next_run:
+            return False
+        return self.working_hours is None or self.working_hours.allows(now)
+
 
 class CronScheduler:
     """A cron-like scheduler for running background tasks."""
 
-    def __init__(self) -> None:
+    def __init__(self, clock: Optional[Callable[[], datetime]] = None) -> None:
         self.tasks: dict[str, ScheduledTask] = {}
         self.running = False
         self.check_interval = 1.0  # Check every second for tasks to run
+        self._clock = clock or (lambda: datetime.now(datetime_timezone.utc))
+
+    def _now(self) -> datetime:
+        return _as_utc(self._clock())
 
     def add_task(self, task) -> None:
         if task.interval is None or task.unit is None or not task.name:
             log.warning(f"Skipping task '{task.name or '?'}' - missing required parameters")
             return
 
-        scheduled = ScheduledTask(task)
+        scheduled = ScheduledTask(task, self._now())
         self.tasks[task.name] = scheduled
         jitter_note = f" (jitter 0–{task.jitter}s)" if task.jitter else ""
         log.info(f"Added scheduled task '{task.name}' to run every {task.interval} {task.unit.value}{jitter_note}")
@@ -91,7 +105,7 @@ class CronScheduler:
             log.debug(f"Running scheduled task '{scheduled.name}'")
             await scheduled.task.run()
 
-            scheduled.last_run = datetime.now()
+            scheduled.last_run = self._now()
             scheduled.calculate_next_run()
             if scheduled.next_run:
                 log.debug(f"Completed scheduled task '{scheduled.name}', next run at {scheduled.next_run.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -109,12 +123,12 @@ class CronScheduler:
         log.info("Starting cron scheduler...")
 
         while self.running:
-            now = datetime.now()
+            now = self._now()
             tasks_to_run = []
 
             # Check which tasks need to run
             for scheduled in self.tasks.values():
-                if scheduled.next_run and now >= scheduled.next_run and not scheduled.running:
+                if scheduled.is_due(now):
                     scheduled.running = True
                     tasks_to_run.append(scheduled)
 

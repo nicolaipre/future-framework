@@ -1,50 +1,58 @@
-[tool.poetry]
+[project]
 name = "future-framework"
 version = "3.0.2"
 description = "ASGI-based framework for web APIs"
-authors = ["nicolaipre"]
-license = "LICENSE"
+authors = [{ name = "nicolaipre" }]
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
-homepage = "https://github.com/nicolaipre/future-framework"
-repository = "https://github.com/nicolaipre/future-framework"
-documentation = "https://nicolaipre.github.io/future-framework/"
-packages = [{ include = "future" }]
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "uvicorn>=0.51.0,<0.52.0",
+    "httpx>=0.28.1,<0.29.0",
+    "rich>=15.0.0,<16.0.0",
+    "elasticsearch>=8.15.0,<9.0.0",
+    "strawberry-graphql>=0.323.0,<0.324.0",
+    "python-dotenv>=1.2.2,<2.0.0",
+    "sqlalchemy[asyncio]>=2.0.51,<3.0.0",
+    "inflection>=0.5.1,<0.6.0",
+    "pymongo>=4.17.0,<5.0.0",
+    "aiosqlite>=0.21.0,<0.22.0",
+    "aiomysql>=0.2.0,<0.3.0",
+    "asyncpg>=0.30.0,<0.31.0",
+    "asynch>=0.2.5,<0.3.0",
+    "clickhouse-driver>=0.2.11,<0.3.0",
+    "redis>=8.0.0,<9.0.0",
+    "faker>=40.0.0,<41.0.0",
+]
 
-[tool.poetry.urls]
+[project.urls]
+Homepage = "https://github.com/nicolaipre/future-framework"
+Repository = "https://github.com/nicolaipre/future-framework"
+Documentation = "https://nicolaipre.github.io/future-framework/"
 "Bug Tracker" = "https://github.com/nicolaipre/future-framework/issues"
 
-[tool.poetry.dependencies]
-python = "^3.12"
-uvicorn = "^0.51.0"
-httpx = "^0.28.1"
-rich = "^15.0.0"
-elasticsearch = ">=8.15.0,<9"
-strawberry-graphql = "^0.323.0"
-python-dotenv = "^1.2.2"
-sqlalchemy = "^2.0.51"
-inflection = "^0.5.1"
-pymongo = "^4.17.0"
-aiosqlite = "^0.21.0"
-aiomysql = "^0.2.0"
-asyncpg = "^0.30.0"
-asynch = "^0.2.5"
-clickhouse-driver = "^0.2.11"
-redis = "^8.0.0"
-faker = "^40.0.0"
+[project.scripts]
+future = "future.cli:main"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^9.1.0"
-pytest-asyncio = "^1.4.0"
-coverage = "^7.15.0"
-ruff = "^0.15.0"
-mypy = "^2.3.0"
-types-psutil = "^7.2.0"
-types-requests = "^2.32.0"
-build = "^1.5.0"
-twine = "^6.2.0"
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0,<10.0.0",
+    "pytest-asyncio>=1.4.0,<2.0.0",
+    "coverage>=7.15.0,<8.0.0",
+    "ruff>=0.15.0,<0.16.0",
+    "mypy>=2.3.0,<3.0.0",
+    "types-psutil>=7.2.0,<8.0.0",
+    "types-requests>=2.32.0,<3.0.0",
+    "build>=1.5.0,<2.0.0",
+    "twine>=6.2.0,<7.0.0",
+]
+docs = [
+    "mkdocs>=1.6.1,<2.0.0",
+]
 
-[tool.poetry.group.docs.dependencies]
-mkdocs = "^1.6.1"
+[tool.poetry]
+packages = [{ include = "future" }]
 
 [tool.poetry-dynamic-versioning]
 enable = true
@@ -112,6 +120,3 @@ pretty = true
 # Gradual typing; Model.__table__ overrides and similar are normal in this codebase.
 disable_error_code = ["misc", "var-annotated", "assignment", "arg-type", "import-untyped"]
 exclude = ["(?x)(build/|dist/|\\.venv/)"]
-
-[tool.poetry.scripts]
-future = "future.cli:main"
