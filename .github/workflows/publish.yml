@@ -24,21 +24,27 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Poetry
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
+
+      - name: Set package version from tag
+        run: |
+          release_version="${GITHUB_REF_NAME#v}"
+          uv version "$release_version" --no-sync
+          test "$(uv version --short)" = "$release_version"
 
       - name: Build package
         run: |
-          poetry run python -m build
-          poetry run twine check dist/*
+          uv build --no-sources
+          uv run --frozen twine check dist/*
 
       - name: Publish to PyPI
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.pypi_password }}
-        run: poetry run twine upload dist/*
+          UV_PUBLISH_USERNAME: __token__
+          UV_PUBLISH_PASSWORD: ${{ secrets.pypi_password }}
+        run: uv publish dist/*

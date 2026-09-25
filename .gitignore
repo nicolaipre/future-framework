@@ -1,42 +1,25 @@
 # Byte-compiled / caches
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.hypothesis/
-.dmypy.json
-dmypy.json
 
 # Coverage / test reports
 htmlcov/
 .coverage
 .coverage.*
 coverage.xml
-*.cover
-.tox/
-.nox/
 
 # Packaging / build
 build/
 dist/
 site/
 *.egg-info/
-*.egg
-.Python
-wheels/
-sdist/
 
 # Virtualenvs / local env
 .env
 .venv/
-venv/
-env/
-
-# Poetry — uv.lock is authoritative for CI; Poetry's lock remains local
-poetry.lock
 
 # Editors / OS
 .idea/

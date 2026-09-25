@@ -45,7 +45,7 @@ jobs:
 
       - name: Build package
         run: |
-          uv run python -m build
+          uv build --no-sources
           uv run twine check dist/*
 
       - name: Run tests
@@ -92,7 +92,7 @@ jobs:
 
       - name: Build package
         run: |
-          uv run python -m build
+          uv build --no-sources
           uv run twine check dist/*
 
       - name: Upload build artifacts

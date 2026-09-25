@@ -1,20 +1,18 @@
 # Installation
 ## Requirements
 - Python **3.12+**
-- [Poetry](https://python-poetry.org/) (recommended) or pip
+- [uv](https://docs.astral.sh/uv/)
 
 ## Package
 PyPI name is **`future-framework`**; import name is always **`future`**.
 
 ```bash
-poetry add future-framework
-# or
-pip install future-framework
+uv add future-framework
 ```
 
 ```toml
 # pyproject.toml
-future-framework = "^2.0.0"
+dependencies = ["future-framework>=3.0.2,<4.0.0"]
 ```
 
 ```python
@@ -23,13 +21,13 @@ from future.application import Future
 
 ## Scaffold an app
 ```bash
-poetry run future init myproject
+uv run future init myproject
 cd myproject
 cp .env.example .env
-poetry install
-poetry run future migrate
-poetry run future seed
-poetry run python run.py
+uv sync
+uv run future migrate
+uv run future seed
+uv run python run.py
 ```
 
 See [Getting started](getting-started.md) and [Configuration](configuration.md).

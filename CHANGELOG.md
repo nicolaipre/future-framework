@@ -5,7 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- Project builds, documentation, and publishing now use uv instead of Poetry
 
+
+## [3.1.0] - 2026-09-25
 ### Added
 - Interval tasks can define timezone-aware `WorkingHours`, including weekday and overnight windows; tasks that become due outside the window run once at the next opening
 
