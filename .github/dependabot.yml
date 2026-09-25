@@ -1,8 +1,8 @@
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 version: 2
 updates:
-  # Poetry — use "pip" ecosystem (Dependabot reads pyproject.toml)
-  - package-ecosystem: "pip"
+  # uv reads pyproject.toml and keeps uv.lock current
+  - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -13,4 +13,3 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-
