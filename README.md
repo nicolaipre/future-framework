@@ -6,12 +6,12 @@
 [![Coverage](https://codecov.io/gh/nicolaipre/future-framework/branch/master/graph/badge.svg)](https://codecov.io/gh/nicolaipre/future-framework)
 
 ## Documentation
-Published at **[nicolaipre.github.io/future-framework](https://nicolaipre.github.io/future-framework/)**. To preview locally: `poetry install --with docs && poetry run mkdocs serve`.
+Published at **[nicolaipre.github.io/future-framework](https://nicolaipre.github.io/future-framework/)**. To preview locally: `uv sync --group docs && uv run mkdocs serve`.
 
 ## Install
 ```bash
-poetry add future-framework
-poetry run future init myproject
+uv add future-framework
+uv run future init myproject
 ```
 
 Import name is `future` (`from future.application import Future`).

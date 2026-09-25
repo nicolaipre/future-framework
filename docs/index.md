@@ -54,7 +54,7 @@ if __name__ == "__main__":
 `Future` always needs a `Lifespan` (empty startup / shutdown / cron lists are fine). For a full project layout, see [Getting started](getting-started.md).
 
 ## Guides
-Published at [nicolaipre.github.io/future-framework](https://nicolaipre.github.io/future-framework/). Local preview: `poetry install --with docs && poetry run mkdocs serve`.
+Published at [nicolaipre.github.io/future-framework](https://nicolaipre.github.io/future-framework/). Local preview: `uv sync --group docs && uv run mkdocs serve`.
 
 | Guide | Package / topic |
 |-------|-----------------|

@@ -23,13 +23,13 @@ STUB_KINDS = {
 
             ```bash
             cp .env.example .env   # DB_DATABASE=database → database.sqlite
-            poetry install
-            poetry run future make:migration ExampleModel
-            poetry run future migrate
-            poetry run future make:seed ExampleModel
-            poetry run future seed
-            poetry run python run.py
-            poetry run future routes
+            uv sync
+            uv run future make:migration ExampleModel
+            uv run future migrate
+            uv run future make:seed ExampleModel
+            uv run future seed
+            uv run python run.py
+            uv run future routes
             ```
         """).lstrip("\n"),
     },
@@ -62,23 +62,23 @@ STUB_KINDS = {
     "pyproject": {
         "path": "pyproject.toml",
         "template": dedent("""
-            [tool.poetry]
+            [project]
             name = "future-boilerplate"
             version = "0.0.1"
             description = "Boilerplate app for the Future framework."
-            authors = ["nicolaipre"]
+            requires-python = ">=3.12,<4.0"
             readme = "README.md"
+            dependencies = [
+                "python-dotenv>=1.0.1,<2.0.0",
+                "future-framework>=3.0.2,<4.0.0",
+            ]
 
-            [tool.poetry.dependencies]
-            python = "^3.12"
-            python-dotenv = "^1.0.1"
-            future-framework = "^2.0.0"
             # Or, while developing Future next to this app:
-            # future-framework = { path = "../future-framework", develop = true }
+            # [tool.uv.sources]
+            # future-framework = { path = "../future-framework", editable = true }
 
-            [build-system]
-            requires = ["poetry-core"]
-            build-backend = "poetry.core.masonry.api"
+            [tool.uv]
+            package = false
         """).lstrip("\n"),
     },
     "license": {
@@ -114,7 +114,6 @@ STUB_KINDS = {
             .vscode/
             .env
             .venv
-            poetry.lock
             __pycache__/
             *.sqlite
             *.sqlite3
