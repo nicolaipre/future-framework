@@ -3,7 +3,7 @@
 
 ```python
 from future.interfaces.ITask import ITask
-from future.taskscheduler import Unit
+from future.scheduling import Unit, Weekday, WorkingHours
 ```
 
 ## ITask fields
@@ -14,13 +14,14 @@ from future.taskscheduler import Unit
 | `unit` | `Unit.SECONDS` / `MINUTES` / `HOURS` / `DAYS` |
 | `start_time` | First run time (`datetime`); default is “now” when registered |
 | `jitter` | Optional extra delay `0 … jitter` seconds on each next-run calculation |
+| `working_hours` | Optional `WorkingHours` constraint for interval tasks |
 
 Cron tasks need `name`, `interval`, and `unit`. Startup / shutdown tasks only need `name` and `run` (interval is ignored).
 
 ## Define a task
 ```python
 from future.interfaces.ITask import ITask
-from future.taskscheduler import Unit
+from future.scheduling import Unit
 
 
 class ScrapeTask(ITask):
@@ -38,6 +39,44 @@ class BootTask(ITask):
     async def run(self) -> None:
         ...
 ```
+
+## Working hours
+
+An interval task can be restricted to a local-time window. The default weekdays are Monday through Friday:
+
+```python
+from datetime import time
+
+from future.interfaces.ITask import ITask
+from future.scheduling import Unit, WorkingHours
+
+
+class SyncCustomers(ITask):
+    name = "sync-customers"
+    interval = 15
+    unit = Unit.MINUTES
+    working_hours = WorkingHours(
+        start=time(8),
+        end=time(17),
+        timezone="Europe/Oslo",
+    )
+
+    async def run(self) -> None:
+        ...
+```
+
+Pass `weekdays` to customize the opening days:
+
+```python
+working_hours = WorkingHours(
+    start=time(22),
+    end=time(6),
+    timezone="Europe/Oslo",
+    weekdays=frozenset({Weekday.FRIDAY, Weekday.SATURDAY}),
+)
+```
+
+The start is inclusive and the end is exclusive. Overnight windows belong to the day on which they open, so Friday `22:00–06:00` includes early Saturday morning. If an interval becomes due while the window is closed, it runs once when the next window opens; missed intervals are not replayed. Time-zone and daylight-saving transitions are handled with the standard-library zone database.
 
 ## Wire into Lifespan
 ```python
@@ -75,7 +114,7 @@ On ASGI lifespan enter, Future runs each `startup_tasks` entry in order (`await 
 On exit, the scheduler stops, then `shutdown_tasks` run the same way.
 
 ## Interval (cron) tasks
-Fixed intervals only — not crontab expressions. `future.taskscheduler.CronScheduler` checks about once per second and runs due tasks concurrently (`asyncio.create_task`). Errors are logged; `last_run` is not updated on failure so the task retries on the next cycle.
+Fixed intervals with optional working-hour constraints — not crontab expressions. `future.taskscheduler.CronScheduler` checks about once per second and runs due tasks concurrently (`asyncio.create_task`). Errors are logged; `last_run` is not updated on failure so the task retries on the next eligible cycle.
 
 Each uvicorn **worker** runs its own scheduler (no cross-worker lock).
 
