@@ -77,6 +77,8 @@
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#define-a-task">Define a task</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#working-hours">Working hours</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#wire-into-lifespan">Wire into Lifespan</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#startup-and-shutdown">Startup and shutdown</a>
@@ -136,7 +138,7 @@
                 <h1 id="tasks">Tasks<a class="headerlink" href="#tasks" title="Permanent link">&para;</a></h1>
 <p><code>future.interfaces.ITask</code> is the base for scheduled work — extend it, implement <code>async def run</code>, and pass instances into <code>Lifespan</code> (startup, shutdown, or <code>cron_tasks</code>).</p>
 <pre><code class="language-python">from future.interfaces.ITask import ITask
-from future.taskscheduler import Unit
+from future.scheduling import Unit, Weekday, WorkingHours
 </code></pre>
 <h2 id="itask-fields">ITask fields<a class="headerlink" href="#itask-fields" title="Permanent link">&para;</a></h2>
 <table>
@@ -167,12 +169,16 @@ from future.taskscheduler import Unit
 <td><code>jitter</code></td>
 <td>Optional extra delay <code>0 … jitter</code> seconds on each next-run calculation</td>
 </tr>
+<tr>
+<td><code>working_hours</code></td>
+<td>Optional <code>WorkingHours</code> constraint for interval tasks</td>
+</tr>
 </tbody>
 </table>
 <p>Cron tasks need <code>name</code>, <code>interval</code>, and <code>unit</code>. Startup / shutdown tasks only need <code>name</code> and <code>run</code> (interval is ignored).</p>
 <h2 id="define-a-task">Define a task<a class="headerlink" href="#define-a-task" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.interfaces.ITask import ITask
-from future.taskscheduler import Unit
+from future.scheduling import Unit
 
 
 class ScrapeTask(ITask):
@@ -190,6 +196,36 @@ class BootTask(ITask):
     async def run(self) -&gt; None:
         ...
 </code></pre>
+<h2 id="working-hours">Working hours<a class="headerlink" href="#working-hours" title="Permanent link">&para;</a></h2>
+<p>An interval task can be restricted to a local-time window. The default weekdays are Monday through Friday:</p>
+<pre><code class="language-python">from datetime import time
+
+from future.interfaces.ITask import ITask
+from future.scheduling import Unit, WorkingHours
+
+
+class SyncCustomers(ITask):
+    name = &quot;sync-customers&quot;
+    interval = 15
+    unit = Unit.MINUTES
+    working_hours = WorkingHours(
+        start=time(8),
+        end=time(17),
+        timezone=&quot;Europe/Oslo&quot;,
+    )
+
+    async def run(self) -&gt; None:
+        ...
+</code></pre>
+<p>Pass <code>weekdays</code> to customize the opening days:</p>
+<pre><code class="language-python">working_hours = WorkingHours(
+    start=time(22),
+    end=time(6),
+    timezone=&quot;Europe/Oslo&quot;,
+    weekdays=frozenset({Weekday.FRIDAY, Weekday.SATURDAY}),
+)
+</code></pre>
+<p>The start is inclusive and the end is exclusive. Overnight windows belong to the day on which they open, so Friday <code>22:00–06:00</code> includes early Saturday morning. If an interval becomes due while the window is closed, it runs once when the next window opens; missed intervals are not replayed. Time-zone and daylight-saving transitions are handled with the standard-library zone database.</p>
 <h2 id="wire-into-lifespan">Wire into Lifespan<a class="headerlink" href="#wire-into-lifespan" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from datetime import datetime, timedelta
 from future.application import Future
@@ -222,7 +258,7 @@ app = Future(lifespan=lifespan, config=config)
 <p>On ASGI lifespan enter, Future runs each <code>startup_tasks</code> entry in order (<code>await task.run()</code>), then starts the scheduler and registers <code>cron_tasks</code>.</p>
 <p>On exit, the scheduler stops, then <code>shutdown_tasks</code> run the same way.</p>
 <h2 id="interval-cron-tasks">Interval (cron) tasks<a class="headerlink" href="#interval-cron-tasks" title="Permanent link">&para;</a></h2>
-<p>Fixed intervals only — not crontab expressions. <code>future.taskscheduler.CronScheduler</code> checks about once per second and runs due tasks concurrently (<code>asyncio.create_task</code>). Errors are logged; <code>last_run</code> is not updated on failure so the task retries on the next cycle.</p>
+<p>Fixed intervals with optional working-hour constraints — not crontab expressions. <code>future.taskscheduler.CronScheduler</code> checks about once per second and runs due tasks concurrently (<code>asyncio.create_task</code>). Errors are logged; <code>last_run</code> is not updated on failure so the task retries on the next eligible cycle.</p>
 <p>Each uvicorn <strong>worker</strong> runs its own scheduler (no cross-worker lock).</p>
 <h2 id="generate-a-task-stub">Generate a task stub<a class="headerlink" href="#generate-a-task-stub" title="Permanent link">&para;</a></h2>
 <pre><code class="language-bash">future make:task Cleanup
