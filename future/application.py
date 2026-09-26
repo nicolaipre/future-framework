@@ -16,7 +16,7 @@ from rich.table import Table
 from rich.text import Text
 
 from future.exceptions import ErrorHandler, HTTPException
-from future.logger import log
+from future.logger import create_uvicorn_logging_config, log
 from future.interfaces.IMiddleware import IMiddleware
 from future.openapi import get_openapi_config, is_docs_path, openapi_routes, rebuild_spec_from_routes, set_openapi_config, spec_path
 from future.request import Request
@@ -656,6 +656,7 @@ class Future:
             ssl_certfile=tls_cert,
             ssl_keyfile_password=tls_password,
             timeout_graceful_shutdown=3,
+            log_config=create_uvicorn_logging_config(),
             log_level="info",
             lifespan="on",
             access_log=access_log,
