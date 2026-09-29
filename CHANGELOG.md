@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Project builds, documentation, and publishing now use uv instead of Poetry
+- Future and Uvicorn use the same forced-color level palette, with brighter colors for HTTP status classes
 
 
 ## [3.1.0] - 2026-09-25

@@ -1,4 +1,5 @@
 import atexit
+import http
 import logging
 import logging.config
 import logging.handlers
@@ -11,36 +12,41 @@ from uvicorn.logging import AccessFormatter, DefaultFormatter
 from future.settings import LOGGING_CONFIG
 
 
+RESET = "\033[0m"
+LEVEL_COLORS = {
+    logging.DEBUG: "\033[36m",       # Cyan
+    logging.INFO: "\033[32m",        # Green
+    logging.WARNING: "\033[38;5;208m",  # Orange
+    logging.ERROR: "\033[31m",       # Red
+    logging.CRITICAL: "\033[91m",    # Bright red
+}
+HTTP_STATUS_COLORS = {
+    1: "\033[96m",  # Bright cyan
+    2: "\033[97m",  # Bright white
+    3: "\033[92m",  # Bright green
+    4: "\033[91m",  # Bright red
+    5: "\033[94m",  # Bright blue
+}
+DEFAULT_LOG_FORMAT = "%(asctime)s %(levelprefix)s %(message)s"
+ACCESS_LOG_FORMAT = '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s'
+
+
+def _colorize(value: str, color: str | None) -> str:
+    return f"{color}{value}{RESET}" if color else value
+
+
 class UtcTimestampFormatter:
     """Render log timestamps as unambiguous ISO 8601 UTC values."""
 
     def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
         return datetime.fromtimestamp(record.created, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
+    def color_level_name(self, level_name: str, level_no: int) -> str:
+        return _colorize(level_name, LEVEL_COLORS.get(level_no))
 
-# ANSI color codes
-class ColoredFormatter(UtcTimestampFormatter, logging.Formatter):
-    """Custom formatter with colors like uvicorn"""
 
-    COLORS = {
-        "DEBUG": "\033[36m",  # Cyan
-        "INFO": "\033[32m",  # Green
-        "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",  # Red
-        "CRITICAL": "\033[35m",  # Magenta
-    }
-    RESET = "\033[0m"
-
-    def format(self, record: logging.LogRecord) -> str:
-        message = super().format(record)
-        timestamp = self.formatTime(record)
-        levelname = record.levelname
-        if levelname in self.COLORS:
-            # Calculate padding based on original levelname length BEFORE adding colors
-            padding = " " * (9 - len(levelname))  # 9 is max level length (CRITICAL) + 1
-            colored_levelname = f"{self.COLORS[levelname]}{levelname}{self.RESET}"
-            return f"{timestamp} {colored_levelname}:{padding}{message}"
-        return f"{timestamp} {levelname}: {message}"
+class ColoredFormatter(UtcTimestampFormatter, DefaultFormatter):
+    """Shared timestamp and level formatter for Future and Uvicorn."""
 
 
 class UvicornDefaultFormatter(UtcTimestampFormatter, DefaultFormatter):
@@ -49,6 +55,16 @@ class UvicornDefaultFormatter(UtcTimestampFormatter, DefaultFormatter):
 
 class UvicornAccessFormatter(UtcTimestampFormatter, AccessFormatter):
     """Uvicorn access formatter using Future's UTC timestamp format."""
+
+    def get_status_code(self, status_code: int) -> str:
+        try:
+            status_phrase = http.HTTPStatus(status_code).phrase
+        except ValueError:
+            status_phrase = ""
+        status_and_phrase = f"{status_code} {status_phrase}"
+        if not self.use_colors:
+            return status_and_phrase
+        return _colorize(status_and_phrase, HTTP_STATUS_COLORS.get(status_code // 100))
 
 
 def create_uvicorn_logging_config() -> dict[str, Any]:
@@ -59,12 +75,13 @@ def create_uvicorn_logging_config() -> dict[str, Any]:
         "formatters": {
             "default": {
                 "()": UvicornDefaultFormatter,
-                "fmt": "%(asctime)s %(levelprefix)s %(message)s",
-                "use_colors": None,
+                "fmt": DEFAULT_LOG_FORMAT,
+                "use_colors": True,
             },
             "access": {
                 "()": UvicornAccessFormatter,
-                "fmt": '%(asctime)s %(levelprefix)s %(client_addr)s - "%(request_line)s" %(status_code)s',
+                "fmt": ACCESS_LOG_FORMAT,
+                "use_colors": True,
             },
         },
         "handlers": {
@@ -91,7 +108,7 @@ def create_uvicorn_logging_config() -> dict[str, Any]:
 logging.config.dictConfig(LOGGING_CONFIG)
 
 log = logging.getLogger("future")
-formatter = ColoredFormatter("%(message)s")
+formatter = ColoredFormatter(DEFAULT_LOG_FORMAT, use_colors=True)
 
 # QueueHandler itself does not format; the listener's stdout handler does.
 # Handler level NOTSET so Future's log.setLevel(APP_DEBUG) alone controls filtering.
