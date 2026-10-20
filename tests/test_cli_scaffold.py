@@ -1,4 +1,5 @@
 import ast
+import runpy
 
 import pytest
 
@@ -37,3 +38,16 @@ def test_new_layer_generators(tmp_path, monkeypatch):
 
     with pytest.raises(ValueError, match="Unknown stub kind"):
         StubMaker().make("interface", "AccountRepository")
+
+
+def test_scaffolded_project_boots_and_registers_routes(tmp_path, monkeypatch):
+    project = tmp_path / "example"
+    StubMaker().scaffold_project(project)
+    monkeypatch.chdir(project)
+    monkeypatch.syspath_prepend(str(project))
+
+    namespace = runpy.run_path(str(project / "run.py"), run_name="scaffolded_run")
+    app = namespace["app"]
+
+    assert app.route_count > 0
+    assert app.config["APP_NAME"] == "Future"

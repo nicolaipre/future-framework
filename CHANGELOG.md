@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configured middleware instances such as `AuthenticationMiddleware(provider="ldap")`, bound as request-local copies
 - Named authentication providers, normalized request identities, working HTTP Basic authentication, and identity-backed route scope validation
 - Authentication, repository, and service generators plus an interface directory in the project scaffold
-- Runnable container example application covering dependency resolution, middleware injection, authentication, scopes, and test overrides
 
 ### Changed
 - Controllers and middleware are constructed through the application container; existing dependency-free controllers and class-only middleware remain compatible

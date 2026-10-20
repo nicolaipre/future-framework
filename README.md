@@ -32,9 +32,5 @@ app.add_routes([RouteGroup(name="Main", routes=[Get("/", HomeController.index, "
 app.run(host="127.0.0.1", port=8000)
 ```
 
-## Examples
-
-The runnable [container application](examples/container_app/README.md) demonstrates constructor injection, interface bindings, middleware injection, Basic authentication, route scopes, and test overrides.
-
 ## License
 See [LICENSE](LICENSE). Versioning: [CHANGELOG.md](CHANGELOG.md).
