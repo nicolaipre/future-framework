@@ -22,7 +22,7 @@ future make:model Stock
 future make:controller Stock
 future make:service Stock
 future make:repository Stock
-future make:authentication Company
+future make:authentication LDAP
 future make:middleware Auth
 future make:plugin Cache
 future make:task Cleanup

@@ -693,7 +693,7 @@ examples:
   future make:controller Trade
   future make:service Trade
   future make:repository Trade
-  future make:authentication Company
+  future make:authentication LDAP
   future make:migration Trade
   future make:migrations
   future make:seed Trade

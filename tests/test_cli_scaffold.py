@@ -31,7 +31,9 @@ def test_new_layer_generators(tmp_path, monkeypatch):
 
     assert StubMaker().make("service", "User").endswith("app/services/UserService.py")
     assert StubMaker().make("repository", "User").endswith("app/repositories/UserRepository.py")
-    assert StubMaker().make("authentication", "Company").endswith("app/authentication/CompanyAuthentication.py")
+    authentication_path = StubMaker().make("authentication", "LDAP")
+    assert authentication_path.endswith("app/authentication/LDAPAuthentication.py")
+    assert "class LDAPAuthentication(IAuthentication):" in (project / authentication_path).read_text()
 
     with pytest.raises(ValueError, match="I prefix is reserved"):
         StubMaker().make("repository", "IAccountRepository")
