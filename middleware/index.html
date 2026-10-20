@@ -59,6 +59,10 @@
               <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../authentication/">Authentication</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../response/">Response</a>
@@ -67,7 +71,11 @@
                   </li>
                   <li class="toctree-l1 current"><a class="reference internal current" href="#">Middleware</a>
     <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#applying-middleware">Applying middleware</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#built-ins">Built-ins</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#scopes">Scopes</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#sessions">Sessions</a>
     </li>
@@ -130,16 +138,41 @@ from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.exceptions import HTTPException
 
-class AuthMiddleware(IMiddleware):
+class ApiKeyMiddleware(IMiddleware):
     async def before(self) -&gt; Optional[Response]:
-        if not self.request.headers.get(&quot;authorization&quot;):
+        if not self.request.headers.get(&quot;x-api-key&quot;):
             raise HTTPException(&quot;unauthorized&quot;, 401)
         return None
 
     async def after(self) -&gt; Optional[Response]:
         return None
 </code></pre>
-<p>Attach on a group or route: <code>middlewares=[AuthMiddleware]</code>.</p>
+<h2 id="applying-middleware">Applying middleware<a class="headerlink" href="#applying-middleware" title="Permanent link">&para;</a></h2>
+<p>Pass middleware classes directly to <code>middlewares</code>. Put shared middleware on a <code>RouteGroup</code>, or put middleware on one route when it only applies there:</p>
+<pre><code class="language-python">from future.middleware.CORSMiddleware import CORSMiddleware
+from future.routing import Get, RouteGroup
+from app.controllers.HealthController import HealthController
+from app.controllers.StockController import StockController
+
+routes = [
+    Get(&quot;/health&quot;, HealthController.show, &quot;health&quot;, middlewares=[CORSMiddleware]),
+    RouteGroup(
+        prefix=&quot;/stocks&quot;,
+        name=&quot;Stocks&quot;,
+        middlewares=[ApiKeyMiddleware],
+        routes=[
+            Get(&quot;/&quot;, StockController.index, &quot;stocks.index&quot;),
+            Get(&quot;/&lt;str:stock_id&gt;&quot;, StockController.show, &quot;stocks.show&quot;),
+        ],
+    ),
+]
+</code></pre>
+<p>Middleware constructors are application configuration, so configured instances can be used directly:</p>
+<pre><code class="language-python">from future.middleware.AuthenticationMiddleware import AuthenticationMiddleware
+
+middlewares=[AuthenticationMiddleware(provider=&quot;ldap&quot;)]
+</code></pre>
+<p>Future keeps the route-level definition immutable and binds a request-local copy. Class-only middleware remains supported and uses its defaults.</p>
 <ul>
 <li><code>before</code> runs outer → inner → controller</li>
 <li><code>after</code> runs in reverse</li>
@@ -147,7 +180,33 @@ class AuthMiddleware(IMiddleware):
 </ul>
 <h2 id="built-ins">Built-ins<a class="headerlink" href="#built-ins" title="Permanent link">&para;</a></h2>
 <p>Import from the class file: CORS, GZip, CSRF, RateLimit, Session, ScopeValidation. Confuser classes exist but are unfinished — see <a href="../gaps/">Gaps</a>.</p>
-<p><code>ScopeValidationMiddleware</code> reads <code>request.route.scopes</code> and <code>request.context["user_id"]</code> / <code>request.context["scopes"]</code> (set by your auth middleware). Missing <code>user_id</code> → 401; missing required scope → 403. Routes with no <code>scopes=</code> are skipped.</p>
+<h2 id="scopes">Scopes<a class="headerlink" href="#scopes" title="Permanent link">&para;</a></h2>
+<p><code>AuthenticationMiddleware</code> uses a named provider and stores its normalized <code>Identity</code> on <code>request.identity</code>. <code>ScopeValidationMiddleware</code> compares the scopes declared by the route with <code>request.identity.scopes</code>.</p>
+<pre><code class="language-python">from future.middleware.AuthenticationMiddleware import AuthenticationMiddleware
+from future.middleware.ScopeValidationMiddleware import ScopeValidationMiddleware
+from future.routing import Get, Post, RouteGroup
+from app.controllers.EmployeeController import EmployeeController
+
+routes = [
+    RouteGroup(
+        prefix=&quot;/employees&quot;,
+        name=&quot;Employees&quot;,
+        middlewares=[AuthenticationMiddleware(provider=&quot;ldap&quot;), ScopeValidationMiddleware],
+        routes=[
+            Get(&quot;/&quot;, EmployeeController.index, &quot;employees.index&quot;, scopes=[&quot;employees:read&quot;]),
+            Get(&quot;/&lt;str:employee_id&gt;&quot;, EmployeeController.show, &quot;employees.show&quot;, scopes=[&quot;employees:read&quot;]),
+            Post(&quot;/&quot;, EmployeeController.create, &quot;employees.create&quot;, scopes=[&quot;employees:read&quot;, &quot;employees:write&quot;]),
+        ],
+    ),
+]
+</code></pre>
+<p>Every declared scope is required. In this example, listing or viewing employees requires <code>employees:read</code>; creating one requires both <code>employees:read</code> and <code>employees:write</code>.</p>
+<ul>
+<li>Missing or invalid credentials return 401.</li>
+<li>An authenticated identity missing any required scope returns 403.</li>
+<li>A route without <code>scopes=</code> is skipped by <code>ScopeValidationMiddleware</code>. It is still authenticated when <code>AuthenticationMiddleware</code> applies to its route or group.</li>
+</ul>
+<p>Authentication runs before scope validation based on middleware priority, so the order shown above remains readable but is not responsible for security. See <a href="../authentication/">Authentication</a> for provider configuration and creating an <code>Identity</code> with scopes.</p>
 <h2 id="sessions">Sessions<a class="headerlink" href="#sessions" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.middleware.SessionMiddleware import SessionMiddleware
 from future.routing import RouteGroup, Get, Post

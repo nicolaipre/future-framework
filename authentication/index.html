@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Future" /><link rel="canonical" href="https://nicolaipre.github.io/future-framework/authentication/" />
+      <link rel="shortcut icon" href="../img/favicon.ico" />
+    <title>Authentication - Future</title>
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Authentication";
+        var mkdocs_page_input_path = "authentication.md";
+        var mkdocs_page_url = "/future-framework/authentication/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/yaml.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/toml.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href=".." class="icon icon-home"> Future
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../installation/">Installation</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../getting-started/">Getting started</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Framework</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Authentication</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#http-basic">HTTP Basic</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#routes">Routes</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../response/">Response</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../routing/">Routing</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../middleware/">Middleware</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../websockets/">WebSockets</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../lifespan/">Lifespan</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../tasks/">Tasks</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../configuration/">Configuration</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../models/">Models</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../database/">Database</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../graphql/">GraphQL</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../docker/">Docker</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../openapi/">OpenAPI</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cli/">CLI</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../gaps/">Gaps</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="..">Future</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Framework</li>
+      <li class="breadcrumb-item active">Authentication</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/nicolaipre/future-framework/edit/master/docs/authentication.md">Edit on nicolaipre/future-framework</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h1>
+<p>Future authentication uses named providers. Providers return one normalized <code>Identity</code>; middleware decides which routes require a provider, and scope middleware performs authorization.</p>
+<h2 id="http-basic">HTTP Basic<a class="headerlink" href="#http-basic" title="Permanent link">&para;</a></h2>
+<p>Authentication code remains a class in <code>app/authentication</code>. An application-specific Basic implementation can reuse the packaged parser while keeping credential lookup in its authentication class:</p>
+<pre><code class="language-python">from future.authentication.BasicAuthentication import BasicAuthentication
+from future.authentication.Identity import Identity
+
+class DatabaseAuthentication(BasicAuthentication):
+    def __init__(self) -&gt; None:
+        super().__init__(verify_credentials=self._verify_credentials)
+
+    async def _verify_credentials(self, username: str, password: str) -&gt; Identity | None:
+        user = await User.where(&quot;username&quot;, username).first()
+        if user is None or not verify_password(password, user.password_hash):
+            return None
+        return Identity(subject=str(user.id), provider=&quot;basic&quot;, scopes=(&quot;profile:read&quot;,))
+
+config = {
+    &quot;AUTHENTICATION&quot;: {
+        &quot;default&quot;: &quot;basic&quot;,
+        &quot;providers&quot;: {
+            &quot;basic&quot;: {
+                &quot;driver&quot;: DatabaseAuthentication,
+            },
+        },
+    },
+}
+</code></pre>
+<p>Custom authentication classes end in <code>Authentication</code>, live in <code>app/authentication</code>, implement <code>authenticate(request)</code>, and return <code>Identity | None</code>. The driver constructor is resolved by Future; configured <code>options</code> can supply protocol values such as issuers and client IDs to reusable packaged authentication classes.</p>
+<h2 id="routes">Routes<a class="headerlink" href="#routes" title="Permanent link">&para;</a></h2>
+<p>Routes stay inline and each route declaration stays on one line:</p>
+<pre><code class="language-python">routes = [
+    RouteGroup(
+        name=&quot;Account&quot;,
+        middlewares=[AuthenticationMiddleware, ScopeValidationMiddleware],
+        routes=[
+            Get(&quot;/profile&quot;, ProfileController.show, &quot;profile.show&quot;, scopes=[&quot;profile:read&quot;]),
+        ],
+    ),
+    RouteGroup(
+        name=&quot;Employees&quot;,
+        middlewares=[AuthenticationMiddleware(provider=&quot;ldap&quot;), ScopeValidationMiddleware],
+        routes=[
+            Get(&quot;/employees&quot;, EmployeeController.index, &quot;employees.index&quot;, scopes=[&quot;employees:read&quot;]),
+        ],
+    ),
+]
+</code></pre>
+<p><code>AuthenticationMiddleware</code> returns 401 when credentials are missing or invalid. <code>ScopeValidationMiddleware</code> requires every scope declared on the matched route and returns 403 when an authenticated identity lacks one. Controllers read <code>self.request.identity</code>; the request never exposes the application container.</p>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../dependencies/" class="btn btn-neutral float-left" title="Dependencies"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../request/" class="btn btn-neutral float-right" title="Request">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/nicolaipre/future-framework" class="fa fa-code-fork" style="color: #fcfcfc"> nicolaipre/future-framework</a>
+        </span>
+    
+    
+      <span><a href="../dependencies/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../request/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "..";</script>
+    <script src="../js/theme_extra.js"></script>
+    <script src="../js/theme.js"></script>
+      <script src="../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>

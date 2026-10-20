@@ -69,6 +69,10 @@
               <ul>
                   <li class="toctree-l1"><a class="reference internal" href="controllers/">Controllers</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="authentication/">Authentication</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="request/">Request</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="response/">Response</a>
@@ -140,14 +144,13 @@
 <h2 id="design">Design<a class="headerlink" href="#design" title="Permanent link">&para;</a></h2>
 <ol>
 <li><strong>No decorators</strong> on framework or app code we control.</li>
-<li><strong>Explicit over magic</strong> — readable dispatch; no hidden IoC by default.</li>
+<li><strong>Predictable resolution</strong> — annotated constructor dependencies are resolved; interfaces require an explicit binding.</li>
 <li><strong>Opt-in features</strong> — sessions, OpenAPI UIs, and DB drivers are chosen in app config.</li>
 <li><strong>Agnostic models</strong> — switch underlying store in settings; keep the same Active Record code.</li>
 </ol>
 <h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from future.application import Future
 from future.interfaces.IController import IController
-from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
@@ -162,14 +165,13 @@ routes = [
     )
 ]
 
-lifespan = Lifespan(startup_tasks=[], shutdown_tasks=[], cron_tasks=[])
-app = Future(lifespan=lifespan, config={&quot;APP_DOMAIN&quot;: &quot;&quot;, &quot;APP_NAME&quot;: &quot;Demo&quot;})
+app = Future(config={&quot;APP_DOMAIN&quot;: &quot;&quot;, &quot;APP_NAME&quot;: &quot;Demo&quot;})
 app.add_routes(routes)
 
 if __name__ == &quot;__main__&quot;:
     app.run(host=&quot;127.0.0.1&quot;, port=8000)
 </code></pre>
-<p><code>Future</code> always needs a <code>Lifespan</code> (empty startup / shutdown / cron lists are fine). For a full project layout, see <a href="getting-started/">Getting started</a>.</p>
+<p><code>Future</code> creates an empty <code>Lifespan</code> by default. Pass one when the application has startup, shutdown, or scheduled tasks. For a full project layout, see <a href="getting-started/">Getting started</a>.</p>
 <h2 id="guides">Guides<a class="headerlink" href="#guides" title="Permanent link">&para;</a></h2>
 <p>Published at <a href="https://nicolaipre.github.io/future-framework/">nicolaipre.github.io/future-framework</a>. Local preview: <code>uv sync --group docs &amp;&amp; uv run mkdocs serve</code>.</p>
 <table>
@@ -191,6 +193,14 @@ if __name__ == &quot;__main__&quot;:
 <tr>
 <td><a href="controllers/">Controllers</a></td>
 <td><code>future.controllers</code></td>
+</tr>
+<tr>
+<td><a href="dependencies/">Dependencies</a></td>
+<td>Constructor resolution and interface bindings</td>
+</tr>
+<tr>
+<td><a href="authentication/">Authentication</a></td>
+<td>Providers, identities, and scopes</td>
 </tr>
 <tr>
 <td><a href="request/">Request</a></td>
@@ -306,5 +316,5 @@ if __name__ == &quot;__main__&quot;:
 
 <!--
 MkDocs version : 1.6.1
-Build Date UTC : 2026-09-29 11:40:22.935259+00:00
+Build Date UTC : 2026-10-20 14:16:21.889983+00:00
 -->

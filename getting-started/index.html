@@ -56,6 +56,8 @@
     <ul class="current">
     <li class="toctree-l2"><a class="reference internal" href="#project-layout">Project layout</a>
     </li>
+    <li class="toctree-l2"><a class="reference internal" href="#application-naming">Application naming</a>
+    </li>
     <li class="toctree-l2"><a class="reference internal" href="#boot-runpy">Boot (run.py)</a>
     </li>
     <li class="toctree-l2"><a class="reference internal" href="#controllers">Controllers</a>
@@ -70,6 +72,10 @@
               <p class="caption"><span class="caption-text">Framework</span></p>
               <ul>
                   <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../authentication/">Authentication</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
@@ -139,15 +145,32 @@
       Settings.py        # load env → APP_*, DB_*
       Database.py        # DATABASES map
     controllers/
+    authentication/
+    interfaces/          # I-prefixed contracts only
     models/
     middleware/
     plugins/
+    repositories/
+    services/
     tasks/
     routes.py
   database/
     migrations/
     seeds/
 </code></pre>
+<h2 id="application-naming">Application naming<a class="headerlink" href="#application-naming" title="Permanent link">&para;</a></h2>
+<p>Application components are classes named for their role and stored in the matching folder:</p>
+<ul>
+<li>Interfaces are the only classes with an <code>I</code> prefix and live in <code>app/interfaces</code>, for example <code>IUserRepository</code>.</li>
+<li>Authentication classes end in <code>Authentication</code> and live in <code>app/authentication</code>.</li>
+<li>Controllers end in <code>Controller</code> and live in <code>app/controllers</code>.</li>
+<li>Middleware ends in <code>Middleware</code> and lives in <code>app/middleware</code>.</li>
+<li>Plugins end in <code>Plugin</code> and live in <code>app/plugins</code>.</li>
+<li>Repositories end in <code>Repository</code> and live in <code>app/repositories</code>.</li>
+<li>Services end in <code>Service</code> and live in <code>app/services</code>.</li>
+<li>Tasks end in <code>Task</code> and live in <code>app/tasks</code>.</li>
+</ul>
+<p>The CLI applies role suffixes to the component types it generates. For example, <code>future make:repository User</code> creates <code>app/repositories/UserRepository.py</code>. Interfaces express application-specific contracts, so they are authored directly in <code>app/interfaces</code> rather than generated.</p>
 <h2 id="boot-runpy">Boot (<code>run.py</code>)<a class="headerlink" href="#boot-runpy" title="Permanent link">&para;</a></h2>
 <pre><code class="language-python">from app.config.Settings import APP_HOST, APP_PORT, APP_WORKERS, APP_NAME, APP_DOMAIN, APP_DEBUG
 from app.config.Database import DATABASES
@@ -178,14 +201,20 @@ if __name__ == &quot;__main__&quot;:
 <h2 id="controllers">Controllers<a class="headerlink" href="#controllers" title="Permanent link">&para;</a></h2>
 <p>See <a href="../controllers/">Controllers</a>. Short version: inherit <code>IController</code>, use <code>self.request</code> / <code>self.response</code>, register class methods on routes.</p>
 <h2 id="routes-approutespy">Routes (<code>app/routes.py</code>)<a class="headerlink" href="#routes-approutespy" title="Permanent link">&para;</a></h2>
-<pre><code class="language-python">from future.openapi import openapi_routes
+<pre><code class="language-python">from future.controllers.OpenAPIController import OpenAPIController
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
 
 routes = [
     RouteGroup(
         name=&quot;Docs&quot;,
-        routes=openapi_routes(uis=[&quot;swagger&quot;, &quot;redoc&quot;, &quot;scalar&quot;, &quot;rapidoc&quot;]),
+        routes=[
+            Get(&quot;/openapi.json&quot;, OpenAPIController.openapi, &quot;openapi&quot;),
+            Get(&quot;/docs&quot;, OpenAPIController.swagger, &quot;docs&quot;),
+            Get(&quot;/redoc&quot;, OpenAPIController.redoc, &quot;redoc&quot;),
+            Get(&quot;/scalar&quot;, OpenAPIController.scalar, &quot;scalar&quot;),
+            Get(&quot;/rapidoc&quot;, OpenAPIController.rapidoc, &quot;rapidoc&quot;),
+        ],
     ),
     RouteGroup(
         prefix=&quot;/stocks&quot;,

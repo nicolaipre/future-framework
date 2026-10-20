@@ -59,6 +59,10 @@
               <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../authentication/">Authentication</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../response/">Response</a>
@@ -253,6 +257,14 @@ app = Future(lifespan=lifespan, config=config)
 <tr>
 <td><code>DATABASES</code></td>
 <td>Named registry at boot (<code>Database().set_connection_details</code>)</td>
+</tr>
+<tr>
+<td><code>AUTHENTICATION</code></td>
+<td>Named authentication providers and their explicit options</td>
+</tr>
+<tr>
+<td><code>BINDINGS</code></td>
+<td>Interface-to-implementation choices for ambiguous constructor dependencies; see <a href="../dependencies/">Dependencies and the application container</a></td>
 </tr>
 <tr>
 <td><code>OPENAPI</code></td>

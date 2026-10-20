@@ -59,6 +59,10 @@
               <ul>
                   <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../authentication/">Authentication</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../response/">Response</a>
@@ -165,11 +169,9 @@
 </ul>
 <h2 id="middleware-stock-library">Middleware stock library<a class="headerlink" href="#middleware-stock-library" title="Permanent link">&para;</a></h2>
 <p>CORS, GZip, CSRF, and RateLimit are usable and exported. Confuser classes remain unfinished and are <strong>not</strong> exported from <code>future.middleware</code>.</p>
-<ul>
-<li><strong>Configured middleware on routes</strong> — Today <code>middlewares=[CORSMiddleware]</code> is a class list; Future constructs each with <code>(request, response)</code>. Consider allowing per-route / per-group options without subclasses, e.g. <code>middlewares=[CORSMiddleware(opt=opt)]</code> (or an equivalent factory / options object), so apps can set CORS origins, rate limits, etc. in <code>routes.py</code>. Design carefully: keep no-decorator style, and do not break the current class + <code>(request, response)</code> injection.</li>
-</ul>
+<p>Configured middleware supports both <code>middlewares=[CORSMiddleware]</code> and direct configured definitions such as <code>middlewares=[AuthenticationMiddleware(provider="ldap")]</code>. Future binds a request-local copy of configured definitions.</p>
 <h2 id="authentication">Authentication<a class="headerlink" href="#authentication" title="Permanent link">&para;</a></h2>
-<p><code>future.authentication.*</code> are stubs (<code>auth_type</code> only) extending <code>future.interfaces.IAuthentication</code>. No JWT / OIDC / session-login middleware ships yet.</p>
+<p>The authentication component, normalized <code>Identity</code>, configured provider registry, HTTP Basic provider, authentication middleware, and scope integration are usable. OIDC, SAML, Azure AD, Auth0, Keycloak, OAuth2, and Kerberos classes are still protocol placeholders and must not be presented as complete implementations yet.</p>
 <h2 id="websockets">WebSockets<a class="headerlink" href="#websockets" title="Permanent link">&para;</a></h2>
 <p>Usable duplex echo — see <a href="../websockets/">WebSockets</a>. <code>handle_websocket_request</code> mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: <code>StreamingResponse</code> (same module as <code>WebSocketResponse</code>) — see <a href="../response/">Response</a>. Later: whether streaming belongs on <code>Response</code> itself.</p>
 <h2 id="http2-asgi-server">HTTP/2 / ASGI server<a class="headerlink" href="#http2-asgi-server" title="Permanent link">&para;</a></h2>
@@ -211,10 +213,6 @@
 </thead>
 <tbody>
 <tr>
-<td><strong>Thin service container</strong></td>
-<td>Optional Masonite-like <code>bind</code> / <code>singleton</code> / <code>make</code> for app services (mail, clients, <code>TradeService</code>), while controllers keep explicit <code>request</code> / <code>response</code> DI. Not a full auto-wire IoC for every dependency. Must stay optional and obvious — no hidden constructor magic by default. Compare Masonite’s container; design carefully before shipping.</td>
-</tr>
-<tr>
 <td><strong>C#-style interface naming + <code>Interface</code> base</strong></td>
 <td>Shipped. <code>future/interfacing.py</code> = core validation. <code>future/interfaces/</code> = I* types (<code>IModel</code>, <code>IController</code>, <code>IMiddleware</code>, <code>IDatabase</code>, <code>IPlugin</code>). App code extends those. Concrete classes stay in domain folders.</td>
 </tr>
@@ -244,7 +242,8 @@ class IModel(Interface):  # real methods — TradeModel(IModel) inherits without
 </code></pre>
 <h2 id="explicitly-out-of-scope-for-now">Explicitly out of scope (for now)<a class="headerlink" href="#explicitly-out-of-scope-for-now" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Full IoC / auto-wiring every constructor argument (Laravel/Spring-style for the whole app)</li>
+<li>Injection into controller actions or arbitrary functions; dependency resolution stays limited to constructors and middleware binding</li>
+<li>A global service locator or container access through <code>Request</code></li>
 <li>Shipping Redocly paid JS without a customer license</li>
 <li>Revel / Reef portal products (not embeddable OpenAPI UIs)</li>
 <li>Replacing uvicorn with Hypercorn as a silent default</li>

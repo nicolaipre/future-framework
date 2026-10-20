@@ -59,6 +59,10 @@
               <ul class="current">
                   <li class="toctree-l1"><a class="reference internal" href="../controllers/">Controllers</a>
                   </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../dependencies/">Dependencies</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../authentication/">Authentication</a>
+                  </li>
                   <li class="toctree-l1"><a class="reference internal" href="../request/">Request</a>
                   </li>
                   <li class="toctree-l1"><a class="reference internal" href="../response/">Response</a>
@@ -124,7 +128,7 @@
             <div class="section" itemprop="articleBody">
               
                 <h1 id="lifespan">Lifespan<a class="headerlink" href="#lifespan" title="Permanent link">&para;</a></h1>
-<p><code>future.lifespan.Lifespan</code> is the ASGI lifespan hook required by <code>Future</code>. You pass in lists of <a href="../tasks/">Tasks</a> to run at startup, on a schedule while the app is up, and at shutdown.</p>
+<p><code>future.lifespan.Lifespan</code> is the ASGI lifespan hook used for application tasks. Future creates an empty lifespan by default; pass one when the application has tasks to run at startup, on a schedule, or at shutdown.</p>
 <pre><code class="language-python">from future.lifespan import Lifespan
 from future.interfaces.ITask import ITask
 from future.taskscheduler import Unit
@@ -174,10 +178,11 @@ app = Future(lifespan=lifespan, config=config)
 </code></pre>
 <h2 id="lifecycle">Lifecycle<a class="headerlink" href="#lifecycle" title="Permanent link">&para;</a></h2>
 <ol>
+<li>Start framework components such as configured authentication providers.</li>
 <li>Run <code>startup_tasks</code> (<code>await task.run()</code>).</li>
 <li>Start <code>CronScheduler</code> and register <code>cron_tasks</code>.</li>
 <li>App serves traffic; interval tasks fire in the background.</li>
-<li>On shutdown: stop the scheduler, then run <code>shutdown_tasks</code>.</li>
+<li>On shutdown: stop the scheduler, run <code>shutdown_tasks</code>, then stop framework components in reverse order.</li>
 </ol>
 <p>How to build an <code>ITask</code> (name, interval, jitter, …): see <a href="../tasks/">Tasks</a>.</p>
               
