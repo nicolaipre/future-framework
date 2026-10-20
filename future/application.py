@@ -1,6 +1,7 @@
 import platform
 import sys
 import logging
+import inspect
 import traceback
 
 from collections.abc import Sequence
@@ -16,6 +17,8 @@ from rich.table import Table
 from rich.text import Text
 
 from future.exceptions import ErrorHandler, HTTPException
+from future.authentication.AuthenticationComponent import AuthenticationComponent
+from future.container import Container
 from future.logger import create_uvicorn_logging_config, log
 from future.interfaces.IMiddleware import IMiddleware
 from future.openapi import get_openapi_config, is_docs_path, openapi_routes, rebuild_spec_from_routes, set_openapi_config, spec_path
@@ -72,16 +75,28 @@ while True:
 
 
 class Future:
-    def __init__(self, lifespan: Any, config: dict[str, Any] | None = None) -> None:
+    def __init__(self, lifespan: Any | None = None, config: dict[str, Any] | None = None) -> None:
         # spawn background tasks in the lifespan startup process... or database connections etc...
         # on shutdown, save shit, send info about shutdown etc...
+        if lifespan is None:
+            from future.lifespan import Lifespan
+            lifespan = Lifespan()
         self.lifespan = lifespan
         self.routes: dict[str, dict[str, RouteConfig]] = {}
         self.config = config or {}
+        self._container = Container(self.config)
+        self._container.instance(Container, self._container)
+        self._container.configure_bindings(self.config.get("BINDINGS"))
         self.databases = self.config.get("DATABASES")
         if self.databases:
             from future.database import Database
-            Database().set_connection_details(self.databases)
+            database = Database()
+            database.set_connection_details(self.databases)
+            self._container.component(database, Database)
+
+        authentication = self.config.get("AUTHENTICATION")
+        if authentication:
+            self._container.component(AuthenticationComponent(self._container, authentication), AuthenticationComponent)
 
         domain = self.config.get("APP_DOMAIN", "")
 
@@ -117,8 +132,25 @@ class Future:
 
     def set_config(self, config: dict[str, Any]) -> None:
         self.config = config
+        self._container.config = config
         set_openapi_config(self.config)
         log.setLevel(logging.DEBUG if bool(self.config.get("APP_DEBUG")) else logging.INFO)
+
+    def override(self, dependency: Any, value: Any) -> None:
+        """Replace a resolved dependency, primarily for application tests."""
+        self._container.override(dependency, value)
+
+    def _middleware_priority(self, middleware: Any) -> int:
+        return int(getattr(middleware, "priority", 0))
+
+    def _bind_middleware(self, definition: Any, request: Request, response: Response) -> IMiddleware:
+        if inspect.isclass(definition):
+            middleware = self._container.resolve(definition, provided={Request: request, Response: response})
+        else:
+            middleware = definition
+        if not isinstance(middleware, IMiddleware):
+            raise TypeError(f"Middleware must extend IMiddleware, got {type(middleware).__name__}")
+        return middleware.bind(request, response, self._container)
 
     def _resolve_controller_action(self, endpoint: Any) -> tuple[Any, str | None]:
         qual = getattr(endpoint, "__qualname__", "") or ""
@@ -149,8 +181,8 @@ class Future:
 
         middleware_classes: list[Any] = []
         if parent_middlewares:
-            middleware_classes.extend(sorted(parent_middlewares, key=lambda m: m.priority))
-        middleware_classes.extend(sorted(route.middlewares, key=lambda m: m.priority))
+            middleware_classes.extend(sorted(parent_middlewares, key=self._middleware_priority))
+        middleware_classes.extend(sorted(route.middlewares, key=self._middleware_priority))
 
         controller_cls, action = self._resolve_controller_action(route.endpoint)
 
@@ -378,15 +410,18 @@ class Future:
 
         started = False
         try:
-            # async with self.lifespan(app) as state:
-            self.lifespan.app = app
-            async with self.lifespan as state:
-                if state is not None:
-                    scope.setdefault("state", {}).update(state)
-                await send({"type": AsgiEventType.LIFESPAN_STARTUP_COMPLETE})
-                started = True
-                message = await receive()
-                assert message["type"] == AsgiEventType.LIFESPAN_SHUTDOWN
+            await self._container.start()
+            try:
+                self.lifespan.app = app
+                async with self.lifespan as state:
+                    if state is not None:
+                        scope.setdefault("state", {}).update(state)
+                    await send({"type": AsgiEventType.LIFESPAN_STARTUP_COMPLETE})
+                    started = True
+                    message = await receive()
+                    assert message["type"] == AsgiEventType.LIFESPAN_SHUTDOWN
+            finally:
+                await self._container.stop()
 
         except BaseException:
             event_type = AsgiEventType.LIFESPAN_SHUTDOWN_FAILED if started else AsgiEventType.LIFESPAN_STARTUP_FAILED
@@ -446,7 +481,7 @@ class Future:
 
             request.route = matched_route.get("route")
             middleware_classes = matched_route["middleware"].get("classes") or []
-            middleware_instances = [m(request, response) for m in middleware_classes]
+            middleware_instances = [self._bind_middleware(middleware, request, response) for middleware in middleware_classes]
             for mw in middleware_instances:
                 early = await mw.before()
                 if early is not None:
@@ -456,7 +491,7 @@ class Future:
             controller_cls = matched_route.get("controller")
             action = matched_route.get("action")
             if controller_cls and action:
-                ctrl = controller_cls(request, response)
+                ctrl = self._container.resolve(controller_cls, provided={Request: request, Response: response})
                 method = getattr(ctrl, action)
                 if route_params:
                     result = await method(**route_params)
@@ -527,7 +562,7 @@ class Future:
         request.route = matched_route.get("route")
         try:
             middleware_classes = matched_route["middleware"].get("classes") or []
-            middleware_instances = [m(request, response) for m in middleware_classes]
+            middleware_instances = [self._bind_middleware(middleware, request, response) for middleware in middleware_classes]
             for mw in middleware_instances:
                 early = await mw.before()
                 if early is not None:
@@ -537,7 +572,7 @@ class Future:
             controller_cls = matched_route.get("controller")
             action = matched_route.get("action")
             if controller_cls and action:
-                ctrl = controller_cls(request, response)
+                ctrl = self._container.resolve(controller_cls, provided={Request: request, Response: response})
                 method = getattr(ctrl, action)
                 if route_params:
                     result = await method(**route_params)

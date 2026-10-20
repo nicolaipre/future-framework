@@ -135,6 +135,8 @@ app = Future(lifespan=lifespan, config=config)
 | `APP_NAME` | Banner / OpenAPI title fallback |
 | `APP_DEBUG` | Uvicorn reload; log level |
 | `DATABASES` | Named registry at boot (`Database().set_connection_details`) |
+| `AUTHENTICATION` | Named authentication providers and their explicit options |
+| `BINDINGS` | Interface-to-implementation choices for ambiguous constructor dependencies; see [Dependencies and the application container](dependencies.md) |
 | `OPENAPI` | Docs enablement and UIs |
 | `APP_ASGI` | Import string for reload / multi-worker (default `run:app`) |
 

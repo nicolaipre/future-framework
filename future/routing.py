@@ -44,7 +44,7 @@ class Route:
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         self.methods = methods
@@ -159,7 +159,7 @@ class Get(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -180,7 +180,7 @@ class Post(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -201,7 +201,7 @@ class Put(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -222,7 +222,7 @@ class Head(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -243,7 +243,7 @@ class Options(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -264,7 +264,7 @@ class Patch(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -285,7 +285,7 @@ class Delete(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -306,7 +306,7 @@ class WebSocket(Route):
         endpoint: Callable[..., Any],
         name: str,
         strict_slashes: bool = False,
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
         scopes: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
@@ -327,7 +327,7 @@ class RouteGroup:
         name: str = "",
         prefix: str = "",
         subdomain: str = "",
-        middlewares: Optional[list[IMiddleware]] = None,
+        middlewares: Optional[list[Any]] = None,
     ) -> None:
         self.name = name
         self.prefix = prefix

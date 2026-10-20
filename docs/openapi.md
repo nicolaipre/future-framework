@@ -3,13 +3,20 @@ Future builds an OpenAPI 3 document from registered routes and serves UIs.
 
 ## Mount docs
 ```python
-from future.openapi import openapi_routes
-from future.routing import RouteGroup
+from future.controllers.OpenAPIController import OpenAPIController
+from future.routing import Get, RouteGroup
 
 routes = [
     RouteGroup(
         name="Docs",
-        routes=openapi_routes(uis=["swagger", "redoc", "scalar", "rapidoc"]),
+        routes=[
+            Get("/openapi.json", OpenAPIController.openapi, "openapi"),
+            Get("/swagger-config", OpenAPIController.swagger_config, "swagger-config"),
+            Get("/docs", OpenAPIController.swagger, "docs"),
+            Get("/redoc", OpenAPIController.redoc, "redoc"),
+            Get("/scalar", OpenAPIController.scalar, "scalar"),
+            Get("/rapidoc", OpenAPIController.rapidoc, "rapidoc"),
+        ],
     ),
 ]
 ```

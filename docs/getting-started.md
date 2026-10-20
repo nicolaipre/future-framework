@@ -11,15 +11,34 @@ myproject/
       Settings.py        # load env → APP_*, DB_*
       Database.py        # DATABASES map
     controllers/
+    authentication/
+    interfaces/          # I-prefixed contracts only
     models/
     middleware/
     plugins/
+    repositories/
+    services/
     tasks/
     routes.py
   database/
     migrations/
     seeds/
 ```
+
+## Application naming
+
+Application components are classes named for their role and stored in the matching folder:
+
+- Interfaces are the only classes with an `I` prefix and live in `app/interfaces`, for example `IUserRepository`.
+- Authentication classes end in `Authentication` and live in `app/authentication`.
+- Controllers end in `Controller` and live in `app/controllers`.
+- Middleware ends in `Middleware` and lives in `app/middleware`.
+- Plugins end in `Plugin` and live in `app/plugins`.
+- Repositories end in `Repository` and live in `app/repositories`.
+- Services end in `Service` and live in `app/services`.
+- Tasks end in `Task` and live in `app/tasks`.
+
+The CLI applies role suffixes to the component types it generates. For example, `future make:repository User` creates `app/repositories/UserRepository.py`. Interfaces express application-specific contracts, so they are authored directly in `app/interfaces` rather than generated.
 
 ## Boot (`run.py`)
 ```python
@@ -56,14 +75,20 @@ See [Controllers](controllers.md). Short version: inherit `IController`, use `se
 
 ## Routes (`app/routes.py`)
 ```python
-from future.openapi import openapi_routes
+from future.controllers.OpenAPIController import OpenAPIController
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
 
 routes = [
     RouteGroup(
         name="Docs",
-        routes=openapi_routes(uis=["swagger", "redoc", "scalar", "rapidoc"]),
+        routes=[
+            Get("/openapi.json", OpenAPIController.openapi, "openapi"),
+            Get("/docs", OpenAPIController.swagger, "docs"),
+            Get("/redoc", OpenAPIController.redoc, "redoc"),
+            Get("/scalar", OpenAPIController.scalar, "scalar"),
+            Get("/rapidoc", OpenAPIController.rapidoc, "rapidoc"),
+        ],
     ),
     RouteGroup(
         prefix="/stocks",

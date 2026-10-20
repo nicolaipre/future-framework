@@ -20,8 +20,11 @@ With `APP_DEBUG` or `workers>1`, set `config["APP_ASGI"]` (default `run:app`) so
 ```bash
 future make:model Stock
 future make:controller Stock
-future make:middleware Auth
-future make:plugin Cache
+future make:service Stock
+future make:repository Stock
+future make:authentication LDAP
+future make:middleware RequestLogging
+future make:plugin Metrics
 future make:task Cleanup
 future make:migration Stock    # from model annotations
 future make:migrations

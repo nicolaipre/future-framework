@@ -12,7 +12,20 @@ class StockController(IController):
         return self.response.json({"id": stock_id})
 ```
 
-Do not add your own `__init__` unless you need extra deps — Future constructs `YourController(request, response)` per request.
+Do not add your own `__init__` unless you need dependencies — Future constructs controllers per request and resolves annotated constructor dependencies automatically.
+
+```python
+class StockController(IController):
+    def __init__(self, request: Request, response: Response, stocks: StockService) -> None:
+        super().__init__(request, response)
+        self.stocks = stocks
+
+    async def get_stock(self, stock_id: str) -> Response:
+        stock = await self.stocks.find(stock_id)
+        return self.response.json(stock.to_dict())
+```
+
+Concrete dependencies need no registration. An interface with multiple implementations needs one `BINDINGS` choice in application config. See [Dependencies](dependencies.md).
 
 ## Example
 ```python

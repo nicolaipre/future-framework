@@ -20,7 +20,6 @@ Import name is `future` (`from future.application import Future`).
 ```python
 from future.application import Future
 from future.interfaces.IController import IController
-from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
@@ -28,7 +27,7 @@ class HomeController(IController):
     async def index(self) -> Response:
         return self.response.json({"ok": True})
 
-app = Future(lifespan=Lifespan([], [], []), config={"APP_DOMAIN": "", "APP_NAME": "Demo"})
+app = Future(config={"APP_DOMAIN": "", "APP_NAME": "Demo"})
 app.add_routes([RouteGroup(name="Main", routes=[Get("/", HomeController.index, "home")])])
 app.run(host="127.0.0.1", port=8000)
 ```

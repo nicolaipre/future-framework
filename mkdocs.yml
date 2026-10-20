@@ -22,6 +22,8 @@ nav:
   - Getting started: getting-started.md
   - Framework:
     - Controllers: controllers.md
+    - Dependencies: dependencies.md
+    - Authentication: authentication.md
     - Request: request.md
     - Response: response.md
     - Routing: routing.md

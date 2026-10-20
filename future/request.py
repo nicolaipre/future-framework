@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from future.types import ASGIReceive, ASGIScope
 from urllib.parse import parse_qs
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import json
+
+if TYPE_CHECKING:
+    from future.authentication.Identity import Identity
 
 
 class UploadedFile:  # FIXME: should not be a class here
@@ -21,6 +26,7 @@ class Request:
         self.method = scope.get("method") or ("WEBSOCKET" if scope.get("type") == "websocket" else "")
         self.path = scope["path"]
         self.route = None
+        self.identity: Identity | None = None
         # ASGI headers are byte pairs; decode once for app code
         self.headers = dict([(key.decode("utf-8"), value.decode("utf-8")) for key, value in scope["headers"]])
         self.host = self.headers.get("host", "")
