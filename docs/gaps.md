@@ -15,10 +15,10 @@ MongoDB, ClickHouse, and Redis Active Record CRUD are usable and async (Redis ha
 ## Middleware stock library
 CORS, GZip, CSRF, and RateLimit are usable and exported. Confuser classes remain unfinished and are **not** exported from `future.middleware`.
 
-- **Configured middleware on routes** — Today `middlewares=[CORSMiddleware]` is a class list; Future constructs each with `(request, response)`. Consider allowing per-route / per-group options without subclasses, e.g. `middlewares=[CORSMiddleware(opt=opt)]` (or an equivalent factory / options object), so apps can set CORS origins, rate limits, etc. in `routes.py`. Design carefully: keep no-decorator style, and do not break the current class + `(request, response)` injection.
+Configured middleware supports both `middlewares=[CORSMiddleware]` and direct configured definitions such as `middlewares=[AuthenticationMiddleware(provider="ldap")]`. Future binds a request-local copy of configured definitions.
 
 ## Authentication
-`future.authentication.*` are stubs (`auth_type` only) extending `future.interfaces.IAuthentication`. No JWT / OIDC / session-login middleware ships yet.
+The authentication component, normalized `Identity`, configured provider registry, HTTP Basic provider, authentication middleware, and scope integration are usable. OIDC, SAML, Azure AD, Auth0, Keycloak, OAuth2, and Kerberos classes are still protocol placeholders and must not be presented as complete implementations yet.
 
 ## WebSockets
 Usable duplex echo — see [WebSockets](websockets.md). `handle_websocket_request` mirrors HTTP for middleware, controller DI, and path params; errors close with 1011. HTTP chunked bodies: `StreamingResponse` (same module as `WebSocketResponse`) — see [Response](response.md). Later: whether streaming belongs on `Response` itself.
@@ -46,7 +46,6 @@ Most HTTP / middleware / path-syntax / DB coverage lives under `tests/`. Remaini
 ## Exploring (needs design — keep Future simple)
 | Idea | Notes |
 |------|-------|
-| **Thin service container** | Optional Masonite-like `bind` / `singleton` / `make` for app services (mail, clients, `TradeService`), while controllers keep explicit `request` / `response` DI. Not a full auto-wire IoC for every dependency. Must stay optional and obvious — no hidden constructor magic by default. Compare Masonite’s container; design carefully before shipping. |
 | **C#-style interface naming + `Interface` base** | Shipped. `future/interfacing.py` = core validation. `future/interfaces/` = I* types (`IModel`, `IController`, `IMiddleware`, `IDatabase`, `IPlugin`). App code extends those. Concrete classes stay in domain folders. |
 
 Accepted validation behavior:
@@ -75,7 +74,8 @@ class IModel(Interface):  # real methods — TradeModel(IModel) inherits without
 ```
 
 ## Explicitly out of scope (for now)
-- Full IoC / auto-wiring every constructor argument (Laravel/Spring-style for the whole app)
+- Injection into controller actions or arbitrary functions; dependency resolution stays limited to constructors and middleware binding
+- A global service locator or container access through `Request`
 - Shipping Redocly paid JS without a customer license
 - Revel / Reef portal products (not embeddable OpenAPI UIs)
 - Replacing uvicorn with Hypercorn as a silent default

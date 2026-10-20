@@ -11,7 +11,7 @@ from typing import Any
 
 
 APP_ROOT = "app"
-APP_DIRS = ["config", "controllers", "middleware", "models", "plugins", "tasks"]
+APP_DIRS = ["authentication", "config", "controllers", "middleware", "models", "plugins", "repositories", "services", "tasks"]
 
 STUB_KINDS = {
     "readme": {
@@ -172,7 +172,7 @@ STUB_KINDS = {
         "template": dedent("""
             from app.controllers.ExampleController import ExampleController
             from app.middleware.ExampleMiddleware import ExampleMiddleware
-            from future.openapi import openapi_routes
+            from future.controllers.OpenAPIController import OpenAPIController
             from future.routing import RouteGroup, Get
 
 
@@ -181,7 +181,14 @@ STUB_KINDS = {
                     name="Docs",
                     prefix="/api",
                     # middlewares=[ExampleMiddleware],  # protect docs if needed
-                    routes=openapi_routes(uis=["swagger", "redoc", "scalar", "rapidoc"]),
+                    routes=[
+                        Get("/openapi.json", OpenAPIController.openapi, "openapi"),
+                        Get("/swagger-config", OpenAPIController.swagger_config, "swagger-config"),
+                        Get("/docs", OpenAPIController.swagger, "docs"),
+                        Get("/redoc", OpenAPIController.redoc, "redoc"),
+                        Get("/scalar", OpenAPIController.scalar, "scalar"),
+                        Get("/rapidoc", OpenAPIController.rapidoc, "rapidoc"),
+                    ],
                 ),
                 RouteGroup(
                     name="Main",
@@ -331,6 +338,36 @@ STUB_KINDS = {
                     return None
         """).lstrip("\n"),
         "init": {"class_name": "ExampleMiddleware"},
+    },
+    "authentication": {
+        "directory": "app/authentication",
+        "suffix": "Authentication",
+        "template": dedent("""
+            from future.authentication.Identity import Identity
+            from future.interfaces.IAuthentication import IAuthentication
+            from future.request import Request
+
+
+            class {class_name}(IAuthentication):
+                async def authenticate(self, request: Request) -> Identity | None:
+                    return None
+        """).lstrip("\n"),
+    },
+    "repository": {
+        "directory": "app/repositories",
+        "suffix": "Repository",
+        "template": dedent("""
+            class {class_name}:
+                pass
+        """).lstrip("\n"),
+    },
+    "service": {
+        "directory": "app/services",
+        "suffix": "Service",
+        "template": dedent("""
+            class {class_name}:
+                pass
+        """).lstrip("\n"),
     },
     "plugin": {
         "directory": "app/plugins",
@@ -651,6 +688,9 @@ examples:
   future routes
   future make:model Trade
   future make:controller Trade
+  future make:service Trade
+  future make:repository Trade
+  future make:authentication Company
   future make:migration Trade
   future make:migrations
   future make:seed Trade
@@ -690,10 +730,13 @@ examples:
     subparsers.add_parser("make:seeds", help="Generate seeders for all annotated models (skips existing files)")
 
     stub_help = {
+        "authentication": "Create app/authentication/<Name>Authentication.py",
         "model": "Create app/models/<Name>.py",
         "controller": "Create app/controllers/<Name>Controller.py",
         "middleware": "Create app/middleware/<Name>Middleware.py",
         "plugin": "Create app/plugins/<Name>Plugin.py",
+        "repository": "Create app/repositories/<Name>Repository.py",
+        "service": "Create app/services/<Name>Service.py",
         "task": "Create app/tasks/<Name>.py",
     }
     for kind, help_text in stub_help.items():

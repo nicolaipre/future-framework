@@ -39,9 +39,10 @@ jobs:
       - name: Run linting & type checking
         run: |
           # Check only — do NOT run `ruff format` in CI (would rewrite long one-line defs).
-          uv run ruff check future tests
+          uv run ruff check future tests examples
           uv run mypy future
           uv run mypy tests
+          uv run mypy examples
 
       - name: Build package
         run: |

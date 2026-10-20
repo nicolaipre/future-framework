@@ -20,7 +20,7 @@ Future is built so you can stand up backends for larger applications quickly, wi
 
 ## Design
 1. **No decorators** on framework or app code we control.
-2. **Explicit over magic** — readable dispatch; no hidden IoC by default.
+2. **Predictable resolution** — annotated constructor dependencies are resolved; interfaces require an explicit binding.
 3. **Opt-in features** — sessions, OpenAPI UIs, and DB drivers are chosen in app config.
 4. **Agnostic models** — switch underlying store in settings; keep the same Active Record code.
 
@@ -28,7 +28,6 @@ Future is built so you can stand up backends for larger applications quickly, wi
 ```python
 from future.application import Future
 from future.interfaces.IController import IController
-from future.lifespan import Lifespan
 from future.response import Response
 from future.routing import Get, RouteGroup
 
@@ -43,15 +42,14 @@ routes = [
     )
 ]
 
-lifespan = Lifespan(startup_tasks=[], shutdown_tasks=[], cron_tasks=[])
-app = Future(lifespan=lifespan, config={"APP_DOMAIN": "", "APP_NAME": "Demo"})
+app = Future(config={"APP_DOMAIN": "", "APP_NAME": "Demo"})
 app.add_routes(routes)
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000)
 ```
 
-`Future` always needs a `Lifespan` (empty startup / shutdown / cron lists are fine). For a full project layout, see [Getting started](getting-started.md).
+`Future` creates an empty `Lifespan` by default. Pass one when the application has startup, shutdown, or scheduled tasks. For a full project layout, see [Getting started](getting-started.md).
 
 ## Guides
 Published at [nicolaipre.github.io/future-framework](https://nicolaipre.github.io/future-framework/). Local preview: `uv sync --group docs && uv run mkdocs serve`.
@@ -61,6 +59,8 @@ Published at [nicolaipre.github.io/future-framework](https://nicolaipre.github.i
 | [Installation](installation.md) | Install + `future init` |
 | [Getting started](getting-started.md) | Project layout and boot |
 | [Controllers](controllers.md) | `future.controllers` |
+| [Dependencies](dependencies.md) | Constructor resolution and interface bindings |
+| [Authentication](authentication.md) | Providers, identities, and scopes |
 | [Request](request.md) | `future.request` |
 | [Response](response.md) | `future.response` |
 | [Routing](routing.md) | `future.routing` |

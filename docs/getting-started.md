@@ -11,9 +11,12 @@ myproject/
       Settings.py        # load env → APP_*, DB_*
       Database.py        # DATABASES map
     controllers/
+    authentication/
     models/
     middleware/
     plugins/
+    repositories/
+    services/
     tasks/
     routes.py
   database/
@@ -56,14 +59,20 @@ See [Controllers](controllers.md). Short version: inherit `IController`, use `se
 
 ## Routes (`app/routes.py`)
 ```python
-from future.openapi import openapi_routes
+from future.controllers.OpenAPIController import OpenAPIController
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
 
 routes = [
     RouteGroup(
         name="Docs",
-        routes=openapi_routes(uis=["swagger", "redoc", "scalar", "rapidoc"]),
+        routes=[
+            Get("/openapi.json", OpenAPIController.openapi, "openapi"),
+            Get("/docs", OpenAPIController.swagger, "docs"),
+            Get("/redoc", OpenAPIController.redoc, "redoc"),
+            Get("/scalar", OpenAPIController.scalar, "scalar"),
+            Get("/rapidoc", OpenAPIController.rapidoc, "rapidoc"),
+        ],
     ),
     RouteGroup(
         prefix="/stocks",

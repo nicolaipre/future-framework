@@ -12,6 +12,7 @@
 | `cookies` | Parsed from `Cookie` |
 | `query` | Query string: single values are `str`, repeated keys are `list[str]` |
 | `session` | Plain `dict` (persist with `SessionMiddleware`) |
+| `identity` | Authenticated `Identity`, or `None` on public/unauthenticated requests |
 | `context` | Scratch `dict` for middleware → controller |
 | `scope` | Raw ASGI scope |
 | `receive` | ASGI receive callable |

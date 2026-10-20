@@ -5,12 +5,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [3.2.0] - 2026-10-20
 ### Added
-- Future and Uvicorn logs include ISO 8601 UTC timestamps with millisecond precision
+- Framework-owned dependency container with recursive constructor resolution, explicit interface bindings, dependency overrides for tests, and component lifecycle hooks
+- Configured middleware instances such as `AuthenticationMiddleware(provider="ldap")`, bound as request-local copies
+- Named authentication providers, normalized request identities, working HTTP Basic authentication, and identity-backed route scope validation
+- Authentication, repository, and service directories and generators in the project scaffold
+- Runnable container example application covering dependency resolution, middleware injection, authentication, scopes, and test overrides
 
 ### Changed
-- Project builds, documentation, and publishing now use uv instead of Poetry
+- Controllers and middleware are constructed through the application container; existing dependency-free controllers and class-only middleware remain compatible
+- Generated and documented routes are explicitly inlined, including OpenAPI endpoints
+
+
+## [3.1.2] - 2026-09-29
+### Changed
 - Future and Uvicorn use the same forced-color level palette, with brighter colors for HTTP status classes
+
+
+## [3.1.1] - 2026-09-26
+### Added
+- Future and Uvicorn logs include ISO 8601 UTC timestamps with millisecond precision
 
 
 ## [3.1.0] - 2026-09-25
@@ -21,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Install SQLAlchemy with its asyncio dependencies so fresh environments include `greenlet`
 
 ### Changed
-- CI dependency installation and test commands now use uv with a locked environment instead of Poetry
+- Project builds, documentation, publishing, CI dependency installation, and test commands now use uv instead of Poetry
 
 
 ## [3.0.2] - 2026-09-23

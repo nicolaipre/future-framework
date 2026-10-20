@@ -1,5 +1,5 @@
 # Lifespan
-`future.lifespan.Lifespan` is the ASGI lifespan hook required by `Future`. You pass in lists of [Tasks](tasks.md) to run at startup, on a schedule while the app is up, and at shutdown.
+`future.lifespan.Lifespan` is the ASGI lifespan hook used for application tasks. Future creates an empty lifespan by default; pass one when the application has tasks to run at startup, on a schedule, or at shutdown.
 
 ```python
 from future.lifespan import Lifespan
@@ -38,9 +38,10 @@ Lifespan(startup_tasks=[], shutdown_tasks=[], cron_tasks=[])
 ```
 
 ## Lifecycle
-1. Run `startup_tasks` (`await task.run()`).
-2. Start `CronScheduler` and register `cron_tasks`.
-3. App serves traffic; interval tasks fire in the background.
-4. On shutdown: stop the scheduler, then run `shutdown_tasks`.
+1. Start framework components such as configured authentication providers.
+2. Run `startup_tasks` (`await task.run()`).
+3. Start `CronScheduler` and register `cron_tasks`.
+4. App serves traffic; interval tasks fire in the background.
+5. On shutdown: stop the scheduler, run `shutdown_tasks`, then stop framework components in reverse order.
 
 How to build an `ITask` (name, interval, jitter, …): see [Tasks](tasks.md).

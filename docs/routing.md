@@ -22,7 +22,7 @@ Values are kwargs on the action. Patterns: `<int:name>`, `<str:name>` / `<string
 
 ## Groups
 ```python
-from future.openapi import openapi_routes
+from future.controllers.OpenAPIController import OpenAPIController
 from future.middleware.CORSMiddleware import CORSMiddleware
 from future.routing import RouteGroup, Get
 from app.controllers.StockController import StockController
@@ -31,7 +31,13 @@ from app.controllers.TradeController import TradeController
 routes = [
     RouteGroup(
         name="Docs",
-        routes=openapi_routes(uis=["swagger", "redoc", "scalar", "rapidoc"]),
+        routes=[
+            Get("/openapi.json", OpenAPIController.openapi, "openapi"),
+            Get("/docs", OpenAPIController.swagger, "docs"),
+            Get("/redoc", OpenAPIController.redoc, "redoc"),
+            Get("/scalar", OpenAPIController.scalar, "scalar"),
+            Get("/rapidoc", OpenAPIController.rapidoc, "rapidoc"),
+        ],
     ),
     RouteGroup(
         prefix="/stocks",
@@ -55,7 +61,8 @@ routes = [
 
 - `prefix` concatenates for nested groups.
 - `subdomain` needs a real `APP_DOMAIN`. When `APP_DOMAIN=""`, RouteGroup subdomains are ignored and every group shares one route table. The same path + method on two groups with different subdomains is a conflict — set `APP_DOMAIN` or use different prefixes.
-- Middleware: see [Middleware](middleware.md).
+- Middleware: see [applying middleware](middleware.md#applying-middleware).
+- Route authorization: declare `scopes=["resource:read"]` and see [Scopes](middleware.md#scopes).
 
 ## WebSockets
 `WebSocket("/ws/<int:id>", …)` — see [WebSockets](websockets.md).
