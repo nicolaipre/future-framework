@@ -34,6 +34,12 @@ def test_new_layer_generators(tmp_path, monkeypatch):
     authentication_path = StubMaker().make("authentication", "LDAP")
     assert authentication_path.endswith("app/authentication/LDAPAuthentication.py")
     assert "class LDAPAuthentication(IAuthentication):" in (project / authentication_path).read_text()
+    middleware_path = StubMaker().make("middleware", "RequestLogging")
+    assert middleware_path.endswith("app/middleware/RequestLoggingMiddleware.py")
+    assert "class RequestLoggingMiddleware(IMiddleware):" in (project / middleware_path).read_text()
+    plugin_path = StubMaker().make("plugin", "Metrics")
+    assert plugin_path.endswith("app/plugins/MetricsPlugin.py")
+    assert "class MetricsPlugin(IPlugin):" in (project / plugin_path).read_text()
 
     with pytest.raises(ValueError, match="I prefix is reserved"):
         StubMaker().make("repository", "IAccountRepository")

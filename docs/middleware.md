@@ -7,9 +7,9 @@ from future.interfaces.IMiddleware import IMiddleware
 from future.response import Response
 from future.exceptions import HTTPException
 
-class AuthMiddleware(IMiddleware):
+class ApiKeyMiddleware(IMiddleware):
     async def before(self) -> Optional[Response]:
-        if not self.request.headers.get("authorization"):
+        if not self.request.headers.get("x-api-key"):
             raise HTTPException("unauthorized", 401)
         return None
 
@@ -32,7 +32,7 @@ routes = [
     RouteGroup(
         prefix="/stocks",
         name="Stocks",
-        middlewares=[AuthMiddleware],
+        middlewares=[ApiKeyMiddleware],
         routes=[
             Get("/", StockController.index, "stocks.index"),
             Get("/<str:stock_id>", StockController.show, "stocks.show"),

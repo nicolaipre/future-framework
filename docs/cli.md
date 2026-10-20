@@ -23,8 +23,8 @@ future make:controller Stock
 future make:service Stock
 future make:repository Stock
 future make:authentication LDAP
-future make:middleware Auth
-future make:plugin Cache
+future make:middleware RequestLogging
+future make:plugin Metrics
 future make:task Cleanup
 future make:migration Stock    # from model annotations
 future make:migrations
