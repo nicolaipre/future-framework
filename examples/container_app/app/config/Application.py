@@ -1,7 +1,5 @@
-from future.authentication.BasicAuthentication import BasicAuthentication
-
-from examples.container_app.app.authentication.TestCredentials import verify_credentials
-from examples.container_app.app.repositories.IUserRepository import IUserRepository
+from examples.container_app.app.authentication.TestAuthentication import TestAuthentication
+from examples.container_app.app.interfaces.IUserRepository import IUserRepository
 from examples.container_app.app.repositories.MemoryUserRepository import MemoryUserRepository
 
 
@@ -16,11 +14,7 @@ CONFIG = {
         "default": "basic",
         "providers": {
             "basic": {
-                "driver": BasicAuthentication,
-                "options": {
-                    "verify_credentials": verify_credentials,
-                    "realm": "Future container example",
-                },
+                "driver": TestAuthentication,
             },
         },
     },

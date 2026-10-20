@@ -62,7 +62,9 @@ Framework components are shared services owned by Future. The database registry 
 
 ## Interchangeable implementations
 
-Only ambiguous interfaces need a binding. Define an application contract with `Interface`, implement it, and select the implementation in `BINDINGS`:
+Only ambiguous interfaces need a binding. Interfaces use an `I` prefix and live in `app/interfaces`; implementations live in their domain folder without an `I` prefix. For example, put `IUserRepository` in `app/interfaces/IUserRepository.py` and `DatabaseUserRepository` in `app/repositories/DatabaseUserRepository.py`.
+
+Define the application contract with `Interface`, implement it, and select the implementation in `BINDINGS`:
 
 ```python
 from future.interfacing import Interface

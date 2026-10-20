@@ -12,6 +12,7 @@ myproject/
       Database.py        # DATABASES map
     controllers/
     authentication/
+    interfaces/          # I-prefixed contracts only
     models/
     middleware/
     plugins/
@@ -23,6 +24,21 @@ myproject/
     migrations/
     seeds/
 ```
+
+## Application naming
+
+Application components are classes named for their role and stored in the matching folder:
+
+- Interfaces are the only classes with an `I` prefix and live in `app/interfaces`, for example `IUserRepository`.
+- Authentication classes end in `Authentication` and live in `app/authentication`.
+- Controllers end in `Controller` and live in `app/controllers`.
+- Middleware ends in `Middleware` and lives in `app/middleware`.
+- Plugins end in `Plugin` and live in `app/plugins`.
+- Repositories end in `Repository` and live in `app/repositories`.
+- Services end in `Service` and live in `app/services`.
+- Tasks end in `Task` and live in `app/tasks`.
+
+The CLI applies these names automatically. For example, `future make:interface UserRepository` creates `app/interfaces/IUserRepository.py`, while `future make:repository User` creates `app/repositories/UserRepository.py`.
 
 ## Boot (`run.py`)
 ```python

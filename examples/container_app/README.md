@@ -1,6 +1,6 @@
 # Container example application
 
-This runnable application verifies Future's framework-owned container, recursive constructor injection, interface bindings, middleware injection, configured authentication middleware, identities, scopes, and test overrides.
+This runnable application verifies Future's framework-owned container, recursive constructor injection, interface bindings, middleware injection, class-based authentication, identities, scopes, and test overrides. It also demonstrates the application layout: `IUserRepository` lives in `app/interfaces`, `MemoryUserRepository` lives in `app/repositories`, and `TestAuthentication` lives in `app/authentication`.
 
 Run it from the repository root:
 

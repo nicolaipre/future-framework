@@ -2,7 +2,7 @@ import base64
 
 from future.testclient import FutureTestClient
 
-from examples.container_app.app.repositories.IUserRepository import IUserRepository
+from examples.container_app.app.interfaces.IUserRepository import IUserRepository
 from examples.container_app.run import create_app
 
 
