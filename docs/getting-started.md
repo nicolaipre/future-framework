@@ -38,7 +38,7 @@ Application components are classes named for their role and stored in the matchi
 - Services end in `Service` and live in `app/services`.
 - Tasks end in `Task` and live in `app/tasks`.
 
-The CLI applies these names automatically. For example, `future make:interface UserRepository` creates `app/interfaces/IUserRepository.py`, while `future make:repository User` creates `app/repositories/UserRepository.py`.
+The CLI applies role suffixes to the component types it generates. For example, `future make:repository User` creates `app/repositories/UserRepository.py`. Interfaces express application-specific contracts, so they are authored directly in `app/interfaces` rather than generated.
 
 ## Boot (`run.py`)
 ```python

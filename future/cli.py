@@ -353,18 +353,6 @@ STUB_KINDS = {
                     return None
         """).lstrip("\n"),
     },
-    "interface": {
-        "directory": "app/interfaces",
-        "prefix": "I",
-        "suffix": "",
-        "template": dedent("""
-            from future.interfacing import Interface
-
-
-            class {class_name}(Interface):
-                pass
-        """).lstrip("\n"),
-    },
     "repository": {
         "directory": "app/repositories",
         "suffix": "Repository",
@@ -427,9 +415,7 @@ STUB_KINDS = {
 
 
 class StubMaker:
-    def class_name(self, name, suffix, prefix=""):
-        if prefix and not (name.startswith(prefix) and len(name) > len(prefix) and name[len(prefix)].isupper()):
-            name = f"{prefix}{name}"
+    def class_name(self, name, suffix):
         if suffix and not name.endswith(suffix):
             return f"{name}{suffix}"
         return name
@@ -451,12 +437,12 @@ class StubMaker:
         if kind not in STUB_KINDS:
             raise ValueError(f"Unknown stub kind: {kind}")
         is_interface_name = name.startswith("I") and len(name) > 1 and name[1].isupper()
-        if kind != "interface" and is_interface_name:
+        if is_interface_name:
             raise ValueError("The I prefix is reserved for interfaces in app/interfaces")
         config = STUB_KINDS[kind]
         if "directory" not in config:
             raise ValueError(f"Stub kind {kind!r} is not a make:* target")
-        class_name = self.class_name(name, config["suffix"], config.get("prefix", ""))
+        class_name = self.class_name(name, config["suffix"])
         directory = Path(config["directory"])
         if not Path("app").is_dir() and not Path("database").is_dir():
             raise FileNotFoundError("No app/ or database/ directory found. Run future init first.")
@@ -707,7 +693,6 @@ examples:
   future make:controller Trade
   future make:service Trade
   future make:repository Trade
-  future make:interface TradeRepository
   future make:authentication Company
   future make:migration Trade
   future make:migrations
@@ -749,7 +734,6 @@ examples:
 
     stub_help = {
         "authentication": "Create app/authentication/<Name>Authentication.py",
-        "interface": "Create app/interfaces/I<Name>.py",
         "model": "Create app/models/<Name>.py",
         "controller": "Create app/controllers/<Name>Controller.py",
         "middleware": "Create app/middleware/<Name>Middleware.py",

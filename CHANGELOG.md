@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Framework-owned dependency container with recursive constructor resolution, explicit interface bindings, dependency overrides for tests, and component lifecycle hooks
 - Configured middleware instances such as `AuthenticationMiddleware(provider="ldap")`, bound as request-local copies
 - Named authentication providers, normalized request identities, working HTTP Basic authentication, and identity-backed route scope validation
-- Authentication, interface, repository, and service directories and generators in the project scaffold
+- Authentication, repository, and service generators plus an interface directory in the project scaffold
 - Runnable container example application covering dependency resolution, middleware injection, authentication, scopes, and test overrides
 
 ### Changed

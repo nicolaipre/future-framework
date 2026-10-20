@@ -30,10 +30,10 @@ def test_new_layer_generators(tmp_path, monkeypatch):
 
     assert StubMaker().make("service", "User").endswith("app/services/UserService.py")
     assert StubMaker().make("repository", "User").endswith("app/repositories/UserRepository.py")
-    interface_path = StubMaker().make("interface", "UserRepository")
-    assert interface_path.endswith("app/interfaces/IUserRepository.py")
-    assert "class IUserRepository(Interface):" in (project / interface_path).read_text()
     assert StubMaker().make("authentication", "Company").endswith("app/authentication/CompanyAuthentication.py")
 
     with pytest.raises(ValueError, match="I prefix is reserved"):
         StubMaker().make("repository", "IAccountRepository")
+
+    with pytest.raises(ValueError, match="Unknown stub kind"):
+        StubMaker().make("interface", "AccountRepository")
